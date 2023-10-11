@@ -1,0 +1,10 @@
+web_server:
+      mode: "DebugMode"
+      host: "localhost"
+      port: 8080
+      timeouts:
+        idle: 5
+        readHeader: 120
+        read: 10
+        write: 10
+      maxHeaderBytes: 16384

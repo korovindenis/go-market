@@ -1,8 +1,7 @@
-package webserver
+package server
 
 import (
 	"context"
-	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -12,11 +11,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var (
-	errTypeIsNotConfig = errors.New("webserver, type is no config")
-)
+// var (
+// 	errTypeIsNotConfig = errors.New("webserver, type is no config")
+// )
 
-type config interface {
+type handler interface {
+}
+
+type Config interface {
 	GetServerAddress() string
 	GetServerMode() string
 	GetServerTimeoutRead() time.Duration
@@ -25,11 +27,11 @@ type config interface {
 	GetServerMaxHeaderBytes() int
 }
 
-func Run(ctx context.Context, cfgAny any) error {
-	cfg, ok := cfgAny.(config)
-	if !ok {
-		return errTypeIsNotConfig
-	}
+func Run(ctx context.Context, cfg Config, handler handler) error {
+	// cfg, ok := cfgAny.(config)
+	// if !ok {
+	// 	return errTypeIsNotConfig
+	// }
 
 	// init http
 	gin.SetMode(cfg.GetServerMode())

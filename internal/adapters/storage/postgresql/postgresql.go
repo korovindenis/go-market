@@ -1,28 +1,42 @@
 package postgresql
 
 import (
+	"context"
 	"database/sql"
+	"errors"
 
+	"github.com/jackc/pgerrcode"
+	"github.com/korovindenis/go-market/internal/domain/entity"
+	"golang.org/x/crypto/bcrypt"
+
+	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose"
 )
 
+const (
+	UniqueViolation = "duplicate key value violates unique constraint"
+)
+
 type Storage struct {
 	db *sql.DB
+	config
 }
 
 type config interface {
 	GetStorageConnectionString() string
+	GetStorageSalt() string
 }
 
-func New(cfg config) (*Storage, error) {
-	db, err := sql.Open("pgx", cfg.GetStorageConnectionString())
+func New(config config) (*Storage, error) {
+	db, err := sql.Open("pgx", config.GetStorageConnectionString())
 	if err != nil {
 		return nil, err
 	}
 
 	storage := &Storage{
-		db: db,
+		db,
+		config,
 	}
 
 	if err := storage.runMigrations(); err != nil {
@@ -34,4 +48,49 @@ func New(cfg config) (*Storage, error) {
 
 func (s *Storage) runMigrations() error {
 	return goose.Run("up", s.db, "deployments/db/migrations")
+}
+
+func (s *Storage) UserRegister(ctx context.Context, user entity.User) error {
+	// add salt to password
+	password, err := hashPassword(user.Password, s.config.GetStorageSalt())
+	if err != nil {
+		return err
+	}
+
+	// add user or return ErrUserLoginNotUnique
+	if _, err := s.db.ExecContext(ctx, "INSERT INTO users (login, password) VALUES ($1, $2)", user.Login, password); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+			return entity.ErrUserLoginNotUnique
+		}
+		return err
+	}
+
+	return nil
+}
+
+// auth user or return ErrUserLoginUnauthorized
+func (s *Storage) UserLogin(ctx context.Context, user entity.User) error {
+	var userPassword string
+	if err := s.db.QueryRowContext(ctx, "SELECT password FROM users WHERE login = $1", user.Login).Scan(&userPassword); err != nil {
+		return entity.ErrUserLoginUnauthorized
+	}
+
+	// add salt to password
+	user.Password += s.config.GetStorageSalt()
+
+	// compare password
+	if err := bcrypt.CompareHashAndPassword([]byte(userPassword), []byte(user.Password)); err != nil {
+		return entity.ErrUserLoginUnauthorized
+	}
+
+	return nil
+}
+
+func hashPassword(password, salt string) (string, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password+salt), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hashedPassword), nil
 }

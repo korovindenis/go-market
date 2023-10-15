@@ -1,4 +1,8 @@
-logs_level: info
+app:
+  name: gomarket
+  logs_level: info
+  secret_key: Hfgtyh4nd3f!
+  token_lifetime: 6
 http_server:
   mode: debug
   host: localhost
@@ -11,3 +15,4 @@ http_server:
     write: 10
 storage:
   connection_string: host=127.0.0.1 user=go password=go dbname=go sslmode=disable
+  salt: gomarket

@@ -9,16 +9,15 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/korovindenis/go-market/internal/port/http/middleware"
 )
 
-// var (
-// 	errTypeIsNotConfig = errors.New("webserver, type is no config")
-// )
-
 type handler interface {
+	Register(c *gin.Context)
+	Login(c *gin.Context)
 }
 
-type Config interface {
+type config interface {
 	GetServerAddress() string
 	GetServerMode() string
 	GetServerTimeoutRead() time.Duration
@@ -27,35 +26,32 @@ type Config interface {
 	GetServerMaxHeaderBytes() int
 }
 
-func Run(ctx context.Context, cfg Config, handler handler) error {
-	// cfg, ok := cfgAny.(config)
-	// if !ok {
-	// 	return errTypeIsNotConfig
-	// }
-
+func Run(ctx context.Context, config config, handler handler) error {
 	// init http
-	gin.SetMode(cfg.GetServerMode())
+	gin.SetMode(config.GetServerMode())
 	router := gin.Default()
 
-	// middleware
 	router.Use(gin.Recovery())
-
-	// Define endpoint
-	//router.GET("/", computerhandler.MainPageHandler)
+	router.Use(middleware.CheckMethodAndContentType())
+	nonAuthenticatedGroup := router.Group("/api/user")
+	{
+		nonAuthenticatedGroup.POST("/register/", handler.Register)
+		nonAuthenticatedGroup.POST("/login/", handler.Login)
+	}
 
 	srv := &http.Server{
-		Addr:           cfg.GetServerAddress(),
+		Addr:           config.GetServerAddress(),
 		Handler:        router,
-		ReadTimeout:    cfg.GetServerTimeoutRead(),
-		WriteTimeout:   cfg.GetServerTimeoutWrite(),
-		IdleTimeout:    cfg.GetServerTimeoutIdle(),
-		MaxHeaderBytes: cfg.GetServerMaxHeaderBytes(),
+		ReadTimeout:    config.GetServerTimeoutRead(),
+		WriteTimeout:   config.GetServerTimeoutWrite(),
+		IdleTimeout:    config.GetServerTimeoutIdle(),
+		MaxHeaderBytes: config.GetServerMaxHeaderBytes(),
 	}
 
 	// run with graceful shutdown
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
-			log.Fatal("Failed to listen and serve", err)
+			log.Fatal("failed to listen and serve", err)
 		}
 	}()
 

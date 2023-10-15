@@ -12,10 +12,17 @@ import (
 
 const config_default_Path = "./Configs/Config.dev.yaml"
 
-type Config struct {
-	LogsLevel  string `koanf:"logs_level"`
+type config struct {
+	App        `koanf:"app"`
 	Httpserver `koanf:"http_server"`
 	Storage    `koanf:"storage"`
+}
+
+type App struct {
+	Name          string `koanf:"name"`
+	LogsLevel     string `koanf:"logs_level"`
+	SecretKey     string `koanf:"secret_key"`
+	TokenLifeTime int    `koanf:"token_lifetime"`
 }
 
 type Httpserver struct {
@@ -33,9 +40,10 @@ type Httpserver struct {
 
 type Storage struct {
 	ConnectionString string `koanf:"connection_string"`
+	Salt             string `koanf:"salt"`
 }
 
-func New() (*Config, error) {
+func New() (*config, error) {
 	k := koanf.New(".")
 	configPath := config_default_Path
 	if envVarValue := os.Getenv("CONFIG_PATH"); envVarValue != "" {
@@ -50,50 +58,66 @@ func New() (*Config, error) {
 		return nil, fmt.Errorf("error loading сonfig: %v", err)
 	}
 
-	var cfg Config
-	if err := k.Unmarshal("", &cfg); err != nil {
+	var config config
+	if err := k.Unmarshal("", &config); err != nil {
 		return nil, fmt.Errorf("error parsing сonfig: %v", err)
 	}
 
-	return &cfg, nil
+	return &config, nil
 }
 
-func (c *Config) GetLogsLevel() string {
-	return c.LogsLevel
+func (c *config) GetAppName() string {
+	return c.App.Name
 }
 
-func (c *Config) GetServerMode() string {
+func (c *config) GetLogsLevel() string {
+	return c.App.LogsLevel
+}
+
+func (c *config) GetAppSecretKey() string {
+	return c.App.SecretKey
+}
+
+func (c *config) GetTokenLifeTime() time.Duration {
+	return time.Duration(c.App.TokenLifeTime)
+}
+
+func (c *config) GetServerMode() string {
 	return c.Httpserver.Mode
 }
 
-func (c *Config) GetServerHost() string {
+func (c *config) GetServerHost() string {
 	return c.Httpserver.Host
 }
 
-func (c *Config) GetServerAddress() string {
+func (c *config) GetServerAddress() string {
 	return fmt.Sprintf("%s:%d", c.Httpserver.Host, c.Httpserver.Port)
 }
 
-func (c *Config) GetServerTimeoutIdle() time.Duration {
+func (c *config) GetServerTimeoutIdle() time.Duration {
 	return time.Duration(c.Httpserver.Timeouts.Idle) * time.Second
 }
 
-func (c *Config) GetServerTimeoutReadHeader() time.Duration {
+func (c *config) GetServerTimeoutReadHeader() time.Duration {
 	return time.Duration(c.Httpserver.Timeouts.ReadHeader) * time.Second
 }
 
-func (c *Config) GetServerTimeoutRead() time.Duration {
+func (c *config) GetServerTimeoutRead() time.Duration {
 	return time.Duration(c.Httpserver.Timeouts.Read) * time.Second
 }
 
-func (c *Config) GetServerTimeoutWrite() time.Duration {
+func (c *config) GetServerTimeoutWrite() time.Duration {
 	return time.Duration(c.Httpserver.Timeouts.Write) * time.Second
 }
 
-func (c *Config) GetServerMaxHeaderBytes() int {
+func (c *config) GetServerMaxHeaderBytes() int {
 	return c.Httpserver.MaxHeaderBytes
 }
 
-func (c *Config) GetStorageConnectionString() string {
+func (c *config) GetStorageConnectionString() string {
 	return c.Storage.ConnectionString
+}
+
+func (c *config) GetStorageSalt() string {
+	return c.Storage.Salt
 }

@@ -11,21 +11,21 @@ import (
 var logger *zap.Logger
 var once sync.Once
 
-type cfg interface {
+type config interface {
 	GetLogsLevel() string
 }
 
-func New(config cfg) (*zap.Logger, error) {
+func New(config config) (*zap.Logger, error) {
 	// for singletone
 	once.Do(func() {
 		lvl, err := zap.ParseAtomicLevel(config.GetLogsLevel())
 		if err != nil {
 			panic(err)
 		}
-		cfg := zap.NewProductionConfig()
-		cfg.Level = lvl
+		config := zap.NewProductionConfig()
+		config.Level = lvl
 
-		zl, err := cfg.Build()
+		zl, err := config.Build()
 		if err != nil {
 			panic(err)
 		}

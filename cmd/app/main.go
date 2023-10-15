@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/korovindenis/go-market/internal/adapters/auth"
 	"github.com/korovindenis/go-market/internal/adapters/config"
 	"github.com/korovindenis/go-market/internal/adapters/logger"
 	storage "github.com/korovindenis/go-market/internal/adapters/storage/postgresql"
@@ -21,20 +22,21 @@ const (
 
 func main() {
 	// init config
-	cfg, err := config.New()
+	config, err := config.New()
 	if err != nil {
 		log.Println(err)
 		os.Exit(ExitWithError)
 	}
+
 	// init logger
-	logger, err := logger.New(cfg)
+	logger, err := logger.New(config)
 	if err != nil {
 		log.Println(err)
 		os.Exit(ExitWithError)
 	}
 
 	// init storage
-	storage, err := storage.New(cfg)
+	storage, err := storage.New(config)
 	if err != nil {
 		logger.Error("init storage", zap.Error(err))
 		os.Exit(ExitWithError)
@@ -47,8 +49,15 @@ func main() {
 		os.Exit(ExitWithError)
 	}
 
+	// init auth methods
+	auth, err := auth.New(config)
+	if err != nil {
+		logger.Error("init auth", zap.Error(err))
+		os.Exit(ExitWithError)
+	}
+
 	// init handlers
-	handler, err := handler.New(usecases)
+	handler, err := handler.New(config, usecases, auth)
 	if err != nil {
 		logger.Error("init handler", zap.Error(err))
 		os.Exit(ExitWithError)
@@ -58,7 +67,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if err := server.Run(ctx, cfg, handler); err != nil {
+	if err := server.Run(ctx, config, handler); err != nil {
 		logger.Error("run web server", zap.Error(err))
 		os.Exit(ExitWithError)
 	}

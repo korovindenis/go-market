@@ -13,6 +13,7 @@ var (
 	ErrStatusBadRequest      = errors.New("bad request")
 	ErrUserLoginNotUnique    = errors.New("login not unique")
 	ErrUserLoginUnauthorized = errors.New("user unauthorized")
+	ErrUnprocessableEntity   = errors.New("unprocessable entity")
 	// ErrInvalidGzipData           = errors.New("invalid gzip data")
 	// ErrReadingRequestBody        = errors.New("error reading request body")
 	// ErrInputMetricNotFound       = errors.New("metric not found")

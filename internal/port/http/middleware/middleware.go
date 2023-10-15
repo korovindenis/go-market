@@ -1,20 +1,82 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/korovindenis/go-market/internal/domain/entity"
 )
 
-func CheckMethodAndContentType() gin.HandlerFunc {
+type config interface {
+	GetTokenName() string
+}
+
+type auth interface {
+	CheckToken(userDevice entity.UserDevice, tokenString string) error
+}
+
+type Middleware struct {
+	config
+	auth
+}
+
+func New(config config, auth auth) (*Middleware, error) {
+	return &Middleware{
+		config,
+		auth,
+	}, nil
+}
+
+func (m *Middleware) CheckMethod() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Request.Method != http.MethodPost && c.Request.Method != http.MethodGet {
 			c.AbortWithError(http.StatusMethodNotAllowed, entity.ErrMethodNotAllowed)
 			return
 		}
-		if c.GetHeader("Content-Type") != "application/json" && c.GetHeader("Content-Type") != "text/plain" {
-			c.AbortWithError(http.StatusUnsupportedMediaType, entity.ErrUnsupportedMediaType)
+		c.Next()
+	}
+}
+
+func (m *Middleware) CheckContentTypeJson() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.GetHeader("Content-Type") != "application/json" {
+			c.Error(fmt.Errorf("%s", "Middleware CheckContentTypeJson"))
+			c.AbortWithError(http.StatusBadRequest, entity.ErrStatusBadRequest)
+			return
+		}
+		c.Next()
+	}
+}
+
+func (m *Middleware) CheckContentTypeText() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.GetHeader("Content-Type") != "text/plain" {
+			c.Error(fmt.Errorf("%s", "Middleware CheckContentTypeText"))
+			c.AbortWithError(http.StatusBadRequest, entity.ErrStatusBadRequest)
+			return
+		}
+		c.Next()
+	}
+}
+
+func (m *Middleware) CheckAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token, err := c.Cookie(m.config.GetTokenName())
+		if err != nil {
+			c.Error(fmt.Errorf("%s %w", "Middleware CheckAuth get Cookie", err))
+			c.AbortWithError(http.StatusUnauthorized, entity.ErrUserLoginUnauthorized)
+			return
+		}
+
+		userDevice := entity.UserDevice{
+			Ip:        c.ClientIP(),
+			UserAgent: c.GetHeader("User-Agent"),
+		}
+
+		if err := m.auth.CheckToken(userDevice, token); err != nil {
+			c.Error(fmt.Errorf("Error: %s %w", "Middleware CheckToken", err))
+			c.AbortWithError(http.StatusUnauthorized, entity.ErrUserLoginUnauthorized)
 			return
 		}
 		c.Next()

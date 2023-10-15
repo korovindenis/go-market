@@ -19,9 +19,9 @@ type config struct {
 }
 
 type App struct {
-	Name          string `koanf:"name"`
 	LogsLevel     string `koanf:"logs_level"`
 	SecretKey     string `koanf:"secret_key"`
+	TokenName     string `koanf:"token_name"`
 	TokenLifeTime int    `koanf:"token_lifetime"`
 }
 
@@ -66,8 +66,8 @@ func New() (*config, error) {
 	return &config, nil
 }
 
-func (c *config) GetAppName() string {
-	return c.App.Name
+func (c *config) GetTokenName() string {
+	return c.App.TokenName
 }
 
 func (c *config) GetLogsLevel() string {

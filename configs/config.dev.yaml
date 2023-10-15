@@ -1,11 +1,11 @@
 app:
-  name: gomarket
   logs_level: info
   secret_key: Hfgtyh4nd3f!
+  token_name: gomarket_auth
   token_lifetime: 6
 http_server:
   mode: debug
-  host: localhost
+  host: 127.0.0.1
   port: 8080
   maxHeaderBytes: 16384
   timeouts:

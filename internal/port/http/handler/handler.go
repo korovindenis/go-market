@@ -13,11 +13,11 @@ type usecase interface {
 }
 
 type auth interface {
-	GetNewToken(user entity.User) (string, error)
+	GenerateToken(user entity.UserDevice) (string, error)
 }
 
 type config interface {
-	GetAppName() string
+	GetTokenName() string
 	GetTokenLifeTime() time.Duration
 }
 

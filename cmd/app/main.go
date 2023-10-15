@@ -11,6 +11,7 @@ import (
 	storage "github.com/korovindenis/go-market/internal/adapters/storage/postgresql"
 	"github.com/korovindenis/go-market/internal/domain/usecases"
 	"github.com/korovindenis/go-market/internal/port/http/handler"
+	"github.com/korovindenis/go-market/internal/port/http/middleware"
 	"github.com/korovindenis/go-market/internal/port/http/server"
 	"go.uber.org/zap"
 )
@@ -63,11 +64,18 @@ func main() {
 		os.Exit(ExitWithError)
 	}
 
+	// init middleware
+	middleware, err := middleware.New(config, auth)
+	if err != nil {
+		logger.Error("init middleware", zap.Error(err))
+		os.Exit(ExitWithError)
+	}
+
 	// cancel the context when main() is terminated
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if err := server.Run(ctx, config, handler); err != nil {
+	if err := server.Run(ctx, config, handler, middleware); err != nil {
 		logger.Error("run web server", zap.Error(err))
 		os.Exit(ExitWithError)
 	}

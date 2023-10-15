@@ -9,12 +9,22 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/korovindenis/go-market/internal/port/http/middleware"
 )
 
 type handler interface {
 	Register(c *gin.Context)
 	Login(c *gin.Context)
+
+	Order(c *gin.Context)
+}
+
+type middleware interface {
+	CheckMethod() gin.HandlerFunc
+
+	CheckContentTypeJson() gin.HandlerFunc
+	CheckContentTypeText() gin.HandlerFunc
+
+	CheckAuth() gin.HandlerFunc
 }
 
 type config interface {
@@ -26,19 +36,31 @@ type config interface {
 	GetServerMaxHeaderBytes() int
 }
 
-func Run(ctx context.Context, config config, handler handler) error {
+func Run(ctx context.Context, config config, handler handler, middleware middleware) error {
 	// init http
 	gin.SetMode(config.GetServerMode())
 	router := gin.Default()
 
+	// middleware
 	router.Use(gin.Recovery())
-	router.Use(middleware.CheckMethodAndContentType())
-	nonAuthenticatedGroup := router.Group("/api/user")
+	router.Use(middleware.CheckMethod())
+
+	// routes with auth
+	authenticatedGroup := router.Group("/api/user")
+	authenticatedGroup.Use(middleware.CheckContentTypeText(), middleware.CheckAuth())
 	{
-		nonAuthenticatedGroup.POST("/register/", handler.Register)
-		nonAuthenticatedGroup.POST("/login/", handler.Login)
+		authenticatedGroup.POST("/orders/", handler.Order)
 	}
 
+	// routes without auth
+	nonauthenticatedGroup := router.Group("/api/user")
+	nonauthenticatedGroup.Use(middleware.CheckContentTypeJson())
+	{
+		nonauthenticatedGroup.POST("/register/", handler.Register)
+		nonauthenticatedGroup.POST("/login/", handler.Login)
+	}
+
+	// server settings
 	srv := &http.Server{
 		Addr:           config.GetServerAddress(),
 		Handler:        router,

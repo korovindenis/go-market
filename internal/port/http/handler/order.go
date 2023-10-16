@@ -48,14 +48,14 @@ func (h *Handler) Order(c *gin.Context) {
 		c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
 		return
 	}
-	userId, ok := userIDRaw.(uint64)
+	userID, ok := userIDRaw.(uint64)
 	if !ok {
 		c.Error(fmt.Errorf("%s %w", "Handler Order Get userId to uint64", err))
 		c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
 		return
 	}
 	user := entity.User{
-		ID: userId,
+		ID: userID,
 	}
 
 	if err := h.usecase.AddOrder(ctx, order, user); err != nil {

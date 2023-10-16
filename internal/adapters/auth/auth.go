@@ -19,7 +19,7 @@ type Auth struct {
 }
 
 type claims struct {
-	entity.UserDevice
+	entity.User
 	jwt.RegisteredClaims
 }
 
@@ -29,9 +29,9 @@ func New(config config) (*Auth, error) {
 	}, nil
 }
 
-func (a *Auth) GenerateToken(userDevice entity.UserDevice) (string, error) {
+func (a *Auth) GenerateToken(userFromBd entity.User) (string, error) {
 	claims := claims{
-		userDevice,
+		userFromBd,
 		jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(a.GetTokenLifeTime() * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -44,7 +44,7 @@ func (a *Auth) GenerateToken(userDevice entity.UserDevice) (string, error) {
 }
 
 // check token with Ip and UserAgent
-func (a *Auth) CheckToken(userDevice entity.UserDevice, tokenString string) error {
+func (a *Auth) CheckToken(user entity.User, tokenString string) error {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return []byte(a.GetAppSecretKey()), nil
 	})
@@ -66,13 +66,37 @@ func (a *Auth) CheckToken(userDevice entity.UserDevice, tokenString string) erro
 	}
 
 	// compare ip,useragent in token and current
-	if userDevice.Ip != claims["Ip"] {
+	if user.Ip != claims["Ip"] {
 		return fmt.Errorf("ip address in the token does not match the current one")
 	}
 
-	if userDevice.UserAgent != claims["UserAgent"] {
+	if user.UserAgent != claims["UserAgent"] {
 		return fmt.Errorf("useragent in the token does not match the current one")
 	}
 
 	return nil
+}
+
+// get user from token
+func (a *Auth) GetUserFromToken(tokenString string) (entity.User, error) {
+	var user entity.User
+
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return []byte(a.GetAppSecretKey()), nil
+	})
+
+	if token.Valid && err == nil {
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			return user, fmt.Errorf("error when extracting claims: %s", err)
+		}
+		userIDFloat, found := claims["Id"].(float64)
+		if !found {
+			return user, fmt.Errorf("error when extracting claims Id: %s", err)
+		}
+
+		user.Id = uint64(userIDFloat)
+	}
+
+	return user, nil
 }

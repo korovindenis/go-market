@@ -10,10 +10,13 @@ import (
 type usecase interface {
 	UserRegister(ctx context.Context, user entity.User) error
 	UserLogin(ctx context.Context, user entity.User) error
+	GetUser(ctx context.Context, userFromReq entity.User) (entity.User, error)
+
+	AddOrder(ctx context.Context, order entity.Order, user entity.User) error
 }
 
 type auth interface {
-	GenerateToken(user entity.UserDevice) (string, error)
+	GenerateToken(user entity.User) (string, error)
 }
 
 type config interface {

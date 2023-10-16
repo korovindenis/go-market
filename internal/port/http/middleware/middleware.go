@@ -13,7 +13,8 @@ type config interface {
 }
 
 type auth interface {
-	CheckToken(userDevice entity.UserDevice, tokenString string) error
+	CheckToken(user entity.User, tokenString string) error
+	GetUserFromToken(tokenString string) (entity.User, error)
 }
 
 type Middleware struct {
@@ -69,7 +70,7 @@ func (m *Middleware) CheckAuth() gin.HandlerFunc {
 			return
 		}
 
-		userDevice := entity.UserDevice{
+		userDevice := entity.User{
 			Ip:        c.ClientIP(),
 			UserAgent: c.GetHeader("User-Agent"),
 		}
@@ -79,6 +80,29 @@ func (m *Middleware) CheckAuth() gin.HandlerFunc {
 			c.AbortWithError(http.StatusUnauthorized, entity.ErrUserLoginUnauthorized)
 			return
 		}
+
+		c.Next()
+	}
+}
+
+func (m *Middleware) AddUserInfoToCtx() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token, err := c.Cookie(m.config.GetTokenName())
+		if err != nil {
+			c.Error(fmt.Errorf("%s %w", "Middleware AddUserInfoToCtx get Cookie", err))
+			c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
+			return
+		}
+
+		user, err := m.auth.GetUserFromToken(token)
+		if err != nil {
+			c.Error(fmt.Errorf("Error: %s %w", "Middleware AddUserInfoToCtx GetUserFromToken", err))
+			c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
+			return
+		}
+
+		c.Set("userId", user.Id)
+
 		c.Next()
 	}
 }

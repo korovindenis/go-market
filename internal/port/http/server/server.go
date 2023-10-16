@@ -25,6 +25,7 @@ type middleware interface {
 	CheckContentTypeText() gin.HandlerFunc
 
 	CheckAuth() gin.HandlerFunc
+	AddUserInfoToCtx() gin.HandlerFunc
 }
 
 type config interface {
@@ -47,7 +48,7 @@ func Run(ctx context.Context, config config, handler handler, middleware middlew
 
 	// routes with auth
 	authenticatedGroup := router.Group("/api/user")
-	authenticatedGroup.Use(middleware.CheckContentTypeText(), middleware.CheckAuth())
+	authenticatedGroup.Use(middleware.CheckContentTypeText(), middleware.CheckAuth(), middleware.AddUserInfoToCtx())
 	{
 		authenticatedGroup.POST("/orders/", handler.Order)
 	}

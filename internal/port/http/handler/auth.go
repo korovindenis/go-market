@@ -22,18 +22,8 @@ func (h *Handler) Register(c *gin.Context) {
 	}
 
 	// get user device info
-	userDevice := entity.UserDevice{
-		Ip:        c.ClientIP(),
-		UserAgent: c.GetHeader("User-Agent"),
-	}
-
-	// generation token
-	token, err := h.auth.GenerateToken(userDevice)
-	if err != nil {
-		c.Error(fmt.Errorf("%s %w", "Handler Register GenerateToken", err))
-		c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
-		return
-	}
+	user.Ip = c.ClientIP()
+	user.UserAgent = c.GetHeader("User-Agent")
 
 	// attempt registration user
 	// with check unique login
@@ -44,6 +34,23 @@ func (h *Handler) Register(c *gin.Context) {
 			c.AbortWithError(http.StatusConflict, entity.ErrUserLoginNotUnique)
 			return
 		}
+		c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
+		return
+	}
+
+	// get user from storage
+	userFromStorage, err := h.usecase.GetUser(ctx, user)
+	if err != nil {
+		c.Error(fmt.Errorf("%s %w", "Handler Register GetUser", err))
+		c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
+		return
+	}
+	user.Id = userFromStorage.Id
+
+	// generation token
+	token, err := h.auth.GenerateToken(user)
+	if err != nil {
+		c.Error(fmt.Errorf("%s %w", "Handler Register GenerateToken", err))
 		c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
 		return
 	}
@@ -62,23 +69,32 @@ func (h *Handler) Register(c *gin.Context) {
 
 func (h *Handler) Login(c *gin.Context) {
 	ctx := c.Request.Context()
-	var user entity.User
+	var userFromReq entity.User
 
 	// check input data
-	if err := c.ShouldBindJSON(&user); err != nil {
+	if err := c.ShouldBindJSON(&userFromReq); err != nil {
 		c.Error(fmt.Errorf("%s %w", "Handler Login ShouldBindJSON", err))
 		c.AbortWithError(http.StatusBadRequest, entity.ErrStatusBadRequest)
 		return
 	}
 
 	// get user device info
-	userDevice := entity.UserDevice{
+	user := entity.User{
 		Ip:        c.ClientIP(),
 		UserAgent: c.GetHeader("User-Agent"),
 	}
 
+	// get user from storage
+	userFromStorage, err := h.usecase.GetUser(ctx, userFromReq)
+	if err != nil {
+		c.Error(fmt.Errorf("%s %w", "Handler Register GetUser", err))
+		c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
+		return
+	}
+	user.Id = userFromStorage.Id
+
 	// generation token
-	token, err := h.auth.GenerateToken(userDevice)
+	token, err := h.auth.GenerateToken(user)
 	if err != nil {
 		c.Error(fmt.Errorf("%s %w", "Handler Login GenerateToken", err))
 		c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
@@ -86,7 +102,7 @@ func (h *Handler) Login(c *gin.Context) {
 	}
 
 	// attempt auth user
-	if err := h.usecase.UserLogin(ctx, user); err != nil {
+	if err := h.usecase.UserLogin(ctx, userFromReq); err != nil {
 		c.Error(fmt.Errorf("%s %w", "Handler Login UserLogin", err))
 
 		if errors.Is(err, entity.ErrUserLoginUnauthorized) {

@@ -87,10 +87,44 @@ func (s *Storage) UserLogin(ctx context.Context, user entity.User) error {
 	return nil
 }
 
+func (s *Storage) GetUser(ctx context.Context, userFromReq entity.User) (entity.User, error) {
+	var userFromStorageId uint64
+	if err := s.db.QueryRowContext(ctx, "SELECT id FROM users WHERE login = $1", userFromReq.Login).Scan(&userFromStorageId); err != nil {
+		return entity.User{}, err
+	}
+	userFromStorage := entity.User{
+		Id: userFromStorageId,
+	}
+
+	return userFromStorage, nil
+}
+
 func hashPassword(password, salt string) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password+salt), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
 	}
 	return string(hashedPassword), nil
+}
+
+// orders
+func (s *Storage) AddOrder(ctx context.Context, order entity.Order, user entity.User) error {
+	var existingOrderUser sql.NullInt64
+	err := s.db.QueryRowContext(ctx, "SELECT user_id FROM orders WHERE number = $1", order.Number).Scan(&existingOrderUser)
+	if errors.Is(err, sql.ErrNoRows) {
+		if _, err := s.db.ExecContext(ctx, "INSERT INTO orders (number, user_id, status) VALUES ($1, $2, 'NEW')", order.Number, user.Id); err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	} else {
+		// An order with this number already exists
+		if existingOrderUser.Int64 == int64(user.Id) {
+			return entity.ErrOrderAlreadyUploaded
+		} else {
+			return entity.ErrOrderAlreadyUploadedAnotherUser
+		}
+	}
+
+	return nil
 }

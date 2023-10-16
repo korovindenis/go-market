@@ -22,7 +22,7 @@ func (h *Handler) Register(c *gin.Context) {
 	}
 
 	// get user device info
-	user.Ip = c.ClientIP()
+	user.IP = c.ClientIP()
 	user.UserAgent = c.GetHeader("User-Agent")
 
 	// attempt registration user
@@ -45,7 +45,7 @@ func (h *Handler) Register(c *gin.Context) {
 		c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
 		return
 	}
-	user.Id = userFromStorage.Id
+	user.ID = userFromStorage.ID
 
 	// generation token
 	token, err := h.auth.GenerateToken(user)
@@ -80,7 +80,7 @@ func (h *Handler) Login(c *gin.Context) {
 
 	// get user device info
 	user := entity.User{
-		Ip:        c.ClientIP(),
+		IP:        c.ClientIP(),
 		UserAgent: c.GetHeader("User-Agent"),
 	}
 
@@ -91,7 +91,7 @@ func (h *Handler) Login(c *gin.Context) {
 		c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
 		return
 	}
-	user.Id = userFromStorage.Id
+	user.ID = userFromStorage.ID
 
 	// generation token
 	token, err := h.auth.GenerateToken(user)

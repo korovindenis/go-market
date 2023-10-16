@@ -66,7 +66,7 @@ func (a *Auth) CheckToken(user entity.User, tokenString string) error {
 	}
 
 	// compare ip,useragent in token and current
-	if user.Ip != claims["Ip"] {
+	if user.IP != claims["IP"] {
 		return fmt.Errorf("ip address in the token does not match the current one")
 	}
 
@@ -90,12 +90,12 @@ func (a *Auth) GetUserFromToken(tokenString string) (entity.User, error) {
 		if !ok {
 			return user, fmt.Errorf("error when extracting claims: %s", err)
 		}
-		userIDFloat, found := claims["Id"].(float64)
+		userIDFloat, found := claims["ID"].(float64)
 		if !found {
 			return user, fmt.Errorf("error when extracting claims Id: %s", err)
 		}
 
-		user.Id = uint64(userIDFloat)
+		user.ID = uint64(userIDFloat)
 	}
 
 	return user, nil

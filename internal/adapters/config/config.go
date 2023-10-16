@@ -10,7 +10,7 @@ import (
 	"github.com/knadh/koanf/providers/file"
 )
 
-const config_default_Path = "./Configs/Config.dev.yaml"
+const configDefaultPath = "./Configs/Config.dev.yaml"
 
 type config struct {
 	App        `koanf:"app"`
@@ -45,7 +45,7 @@ type Storage struct {
 
 func New() (*config, error) {
 	k := koanf.New(".")
-	configPath := config_default_Path
+	configPath := configDefaultPath
 	if envVarValue := os.Getenv("CONFIG_PATH"); envVarValue != "" {
 		configPath = envVarValue
 	}

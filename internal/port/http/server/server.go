@@ -21,7 +21,7 @@ type handler interface {
 type middleware interface {
 	CheckMethod() gin.HandlerFunc
 
-	CheckContentTypeJson() gin.HandlerFunc
+	CheckContentTypeJSON() gin.HandlerFunc
 	CheckContentTypeText() gin.HandlerFunc
 
 	CheckAuth() gin.HandlerFunc
@@ -55,7 +55,7 @@ func Run(ctx context.Context, config config, handler handler, middleware middlew
 
 	// routes without auth
 	nonauthenticatedGroup := router.Group("/api/user")
-	nonauthenticatedGroup.Use(middleware.CheckContentTypeJson())
+	nonauthenticatedGroup.Use(middleware.CheckContentTypeJSON())
 	{
 		nonauthenticatedGroup.POST("/register/", handler.Register)
 		nonauthenticatedGroup.POST("/login/", handler.Login)

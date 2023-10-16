@@ -39,10 +39,10 @@ func (m *Middleware) CheckMethod() gin.HandlerFunc {
 	}
 }
 
-func (m *Middleware) CheckContentTypeJson() gin.HandlerFunc {
+func (m *Middleware) CheckContentTypeJSON() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.GetHeader("Content-Type") != "application/json" {
-			c.Error(fmt.Errorf("%s", "Middleware CheckContentTypeJson"))
+			c.Error(fmt.Errorf("%s", "Middleware CheckContentTypeJSON"))
 			c.AbortWithError(http.StatusBadRequest, entity.ErrStatusBadRequest)
 			return
 		}
@@ -71,12 +71,12 @@ func (m *Middleware) CheckAuth() gin.HandlerFunc {
 		}
 
 		userDevice := entity.User{
-			Ip:        c.ClientIP(),
+			IP:        c.ClientIP(),
 			UserAgent: c.GetHeader("User-Agent"),
 		}
 
 		if err := m.auth.CheckToken(userDevice, token); err != nil {
-			c.Error(fmt.Errorf("Error: %s %w", "Middleware CheckToken", err))
+			c.Error(fmt.Errorf("error: %s %w", "Middleware CheckToken", err))
 			c.AbortWithError(http.StatusUnauthorized, entity.ErrUserLoginUnauthorized)
 			return
 		}
@@ -96,12 +96,12 @@ func (m *Middleware) AddUserInfoToCtx() gin.HandlerFunc {
 
 		user, err := m.auth.GetUserFromToken(token)
 		if err != nil {
-			c.Error(fmt.Errorf("Error: %s %w", "Middleware AddUserInfoToCtx GetUserFromToken", err))
+			c.Error(fmt.Errorf("error: %s %w", "Middleware AddUserInfoToCtx GetUserFromToken", err))
 			c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
 			return
 		}
 
-		c.Set("userId", user.Id)
+		c.Set("userId", user.ID)
 
 		c.Next()
 	}

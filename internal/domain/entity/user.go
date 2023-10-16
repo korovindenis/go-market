@@ -3,7 +3,7 @@ package entity
 type User struct {
 	Login     string `json:"login" binding:"required"`
 	Password  string `json:"password" binding:"required"`
-	Id        uint64
-	Ip        string
+	ID        uint64
+	IP        string
 	UserAgent string
 }

@@ -88,12 +88,12 @@ func (s *Storage) UserLogin(ctx context.Context, user entity.User) error {
 }
 
 func (s *Storage) GetUser(ctx context.Context, userFromReq entity.User) (entity.User, error) {
-	var userFromStorageId uint64
-	if err := s.db.QueryRowContext(ctx, "SELECT id FROM users WHERE login = $1", userFromReq.Login).Scan(&userFromStorageId); err != nil {
+	var userFromStorageID uint64
+	if err := s.db.QueryRowContext(ctx, "SELECT id FROM users WHERE login = $1", userFromReq.Login).Scan(&userFromStorageID); err != nil {
 		return entity.User{}, err
 	}
 	userFromStorage := entity.User{
-		Id: userFromStorageId,
+		ID: userFromStorageID,
 	}
 
 	return userFromStorage, nil
@@ -112,14 +112,14 @@ func (s *Storage) AddOrder(ctx context.Context, order entity.Order, user entity.
 	var existingOrderUser sql.NullInt64
 	err := s.db.QueryRowContext(ctx, "SELECT user_id FROM orders WHERE number = $1", order.Number).Scan(&existingOrderUser)
 	if errors.Is(err, sql.ErrNoRows) {
-		if _, err := s.db.ExecContext(ctx, "INSERT INTO orders (number, user_id, status) VALUES ($1, $2, 'NEW')", order.Number, user.Id); err != nil {
+		if _, err := s.db.ExecContext(ctx, "INSERT INTO orders (number, user_id, status) VALUES ($1, $2, 'NEW')", order.Number, user.ID); err != nil {
 			return err
 		}
 	} else if err != nil {
 		return err
 	} else {
 		// An order with this number already exists
-		if existingOrderUser.Int64 == int64(user.Id) {
+		if existingOrderUser.Int64 == int64(user.ID) {
 			return entity.ErrOrderAlreadyUploaded
 		} else {
 			return entity.ErrOrderAlreadyUploadedAnotherUser

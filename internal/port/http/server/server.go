@@ -46,19 +46,17 @@ func Run(ctx context.Context, config config, handler handler, middleware middlew
 	router.Use(gin.Recovery())
 	router.Use(middleware.CheckMethod())
 
-	// routes with auth
-	authenticatedGroup := router.Group("/api/user")
-	authenticatedGroup.Use(middleware.CheckContentTypeText(), middleware.CheckAuth(), middleware.AddUserInfoToCtx())
+	// api
+	user := router.Group("/api/user")
 	{
-		authenticatedGroup.POST("/orders/", handler.Order)
-	}
+		// routes without auth
+		nonAuth := user.Group("/", middleware.CheckContentTypeJSON())
+		nonAuth.POST("register", handler.Register)
+		nonAuth.POST("login", handler.Login)
 
-	// routes without auth
-	nonauthenticatedGroup := router.Group("/api/user")
-	nonauthenticatedGroup.Use(middleware.CheckContentTypeJSON())
-	{
-		nonauthenticatedGroup.POST("/register/", handler.Register)
-		nonauthenticatedGroup.POST("/login/", handler.Login)
+		// routes with auth
+		orders := user.Group("/", middleware.CheckContentTypeText(), middleware.CheckAuth(), middleware.AddUserInfoToCtx())
+		orders.POST("orders", handler.Order)
 	}
 
 	// server settings

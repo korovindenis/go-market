@@ -8,14 +8,18 @@ import (
 	"go.uber.org/zap"
 )
 
-var logger *zap.Logger
-var once sync.Once
-
 type config interface {
 	GetLogsLevel() string
 }
 
-func New(config config) (*zap.Logger, error) {
+type logger struct {
+	*zap.Logger
+}
+
+func New(config config) (*logger, error) {
+	var loggerZap *zap.Logger
+	var once sync.Once
+
 	// for singletone
 	once.Do(func() {
 		lvl, err := zap.ParseAtomicLevel(config.GetLogsLevel())
@@ -31,13 +35,15 @@ func New(config config) (*zap.Logger, error) {
 		}
 		defer zl.Sync()
 
-		logger = zl
+		loggerZap = zl
 	})
 
-	return logger, nil
+	return &logger{
+		loggerZap,
+	}, nil
 }
 
-func RequestLogger() gin.HandlerFunc {
+func (l *logger) RequestLogger() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		startTime := time.Now()
 
@@ -46,7 +52,7 @@ func RequestLogger() gin.HandlerFunc {
 
 		endTime := time.Now()
 
-		logger.With(
+		l.Logger.With(
 			zap.Any("HTTP REQUEST", struct {
 				METHOD  string
 				URI     string

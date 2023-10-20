@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgerrcode"
 	"github.com/korovindenis/go-market/internal/domain/entity"
@@ -77,7 +78,7 @@ func (s *Storage) UserLogin(ctx context.Context, user entity.User) error {
 	}
 
 	// add salt to password
-	user.Password += s.config.GetStorageSalt()
+	user.Password = fmt.Sprintf("%s%s", user.Password, s.config.GetStorageSalt())
 
 	// compare password
 	if err := bcrypt.CompareHashAndPassword([]byte(userPassword), []byte(user.Password)); err != nil {

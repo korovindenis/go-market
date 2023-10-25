@@ -15,7 +15,8 @@ type handler interface {
 	Register(c *gin.Context)
 	Login(c *gin.Context)
 
-	Order(c *gin.Context)
+	GetOrder(c *gin.Context)
+	SetOrder(c *gin.Context)
 }
 
 type middleware interface {
@@ -56,7 +57,8 @@ func Run(ctx context.Context, config config, handler handler, middleware middlew
 
 		// routes with auth
 		orders := user.Group("/", middleware.CheckContentTypeText(), middleware.CheckAuth(), middleware.AddUserInfoToCtx())
-		orders.POST("orders", handler.Order)
+		orders.GET("orders", handler.GetOrder)
+		orders.POST("orders", handler.SetOrder)
 	}
 
 	// server settings

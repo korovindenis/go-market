@@ -11,23 +11,19 @@ import (
 	"github.com/korovindenis/go-market/internal/domain/entity"
 )
 
-func (h *Handler) Order(c *gin.Context) {
-	// TO DO
-	// 200 — номер заказа уже был загружен этим пользователем;
-	// 409 — номер заказа уже был загружен другим пользователем;
-
+func (h *Handler) SetOrder(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// get input data
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		c.Error(fmt.Errorf("%s %w", "Handler Order ShouldBindBodyWith", err))
+		c.Error(fmt.Errorf("%s %w", "Handler SetOrder ShouldBindBodyWith", err))
 		c.AbortWithError(http.StatusBadRequest, entity.ErrStatusBadRequest)
 		return
 	}
 	num, err := strconv.ParseUint(string(body), 10, 64)
 	if err != nil {
-		c.Error(fmt.Errorf("%s %w", "Handler Order ParseUint", err))
+		c.Error(fmt.Errorf("%s %w", "Handler SetOrder ParseUint", err))
 		c.AbortWithError(http.StatusUnprocessableEntity, entity.ErrUnprocessableEntity)
 		return
 	}
@@ -37,20 +33,13 @@ func (h *Handler) Order(c *gin.Context) {
 
 	// check input data
 	if err := order.IsValidNumber(); err != nil {
-		c.Error(fmt.Errorf("%s %w", "Handler Order IsValidNumber", err))
+		c.Error(fmt.Errorf("%s %w", "Handler SetOrder IsValidNumber", err))
 		c.AbortWithError(http.StatusUnprocessableEntity, entity.ErrUnprocessableEntity)
 		return
 	}
-
-	userIDRaw, ok := c.Get("userId")
-	if !ok {
-		c.Error(fmt.Errorf("%s %w", "Handler Order Get userId", err))
-		c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
-		return
-	}
-	userID, ok := userIDRaw.(uint64)
-	if !ok {
-		c.Error(fmt.Errorf("%s %w", "Handler Order Get userId to uint64", err))
+	userID, err := h.getUserIdFromCtx(c)
+	if err != nil {
+		c.Error(fmt.Errorf("%s %w", "Handler SetOrder getUserIdFromCtx", err))
 		c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
 		return
 	}
@@ -59,11 +48,11 @@ func (h *Handler) Order(c *gin.Context) {
 	}
 
 	if err := h.usecase.AddOrder(ctx, order, user); err != nil {
-		c.Error(fmt.Errorf("%s %w", "Handler Order AddOrder", err))
+		c.Error(fmt.Errorf("%s %w", "Handler SetOrder AddOrder", err))
 
 		// order has already been uploaded by another user
 		if errors.Is(err, entity.ErrOrderAlreadyUploadedAnotherUser) {
-			c.Error(fmt.Errorf("%s %w", "Handler Order AddOrder ErrOrderAlreadyUploadedAnotherUser", err))
+			c.Error(fmt.Errorf("%s %w", "Handler SetOrder AddOrder ErrOrderAlreadyUploadedAnotherUser", err))
 			c.AbortWithError(http.StatusConflict, entity.ErrOrderAlreadyUploadedAnotherUser)
 			return
 		}
@@ -77,4 +66,19 @@ func (h *Handler) Order(c *gin.Context) {
 	}
 
 	c.Status(http.StatusAccepted)
+}
+
+func (h *Handler) GetOrder(c *gin.Context) {
+	ctx := c.Request.Context()
+	userID, err := h.getUserIdFromCtx(c)
+	if err != nil {
+		c.Error(fmt.Errorf("%s %w", "Handler GetOrder getUserIdFromCtx", err))
+		c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
+		return
+	}
+	user := entity.User{
+		ID: userID,
+	}
+
+	h.usecase.GetOrder(ctx, user)
 }

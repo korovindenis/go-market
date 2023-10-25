@@ -9,6 +9,8 @@ CREATE TABLE orders (
     id BIGSERIAL PRIMARY KEY,
     number BIGINT NOT NULL UNIQUE,
     user_id BIGSERIAL NOT NULL,
+    accrual INTEGER DEFAULT 0,
+    uploaded_at TIMESTAMP DEFAULT current_timestamp,
     status VARCHAR(20) NOT NULL CHECK (status IN ('NEW', 'PROCESSING', 'INVALID', 'PROCESSED')),
     FOREIGN KEY (user_id) REFERENCES users(id)
 );

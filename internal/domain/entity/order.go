@@ -9,7 +9,7 @@ import (
 
 type Order struct {
 	Number     uint64    `json:"number"`
-	Status     Status    `json:"status"`
+	Status     string    `json:"status"`
 	Accrual    float64   `json:"accrual,omitempty"`
 	UploadedAt time.Time `json:"uploaded_at"`
 }
@@ -20,17 +20,4 @@ func (o *Order) IsValidNumber() error {
 		return err
 	}
 	return nil
-}
-
-type Status uint8
-
-const (
-	StatusNew Status = iota
-	StatusProcessing
-	StatusInvalid
-	StatusProcessed
-)
-
-func (s Status) String() string {
-	return [...]string{"NEW", "PROCESSING", "INVALID", "PROCESSED"}[s]
 }

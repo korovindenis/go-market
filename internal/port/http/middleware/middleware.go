@@ -41,6 +41,10 @@ func (m *Middleware) CheckMethod() gin.HandlerFunc {
 
 func (m *Middleware) CheckContentTypeJSON() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if c.Request.Method == http.MethodGet {
+			c.Next()
+			return
+		}
 		if c.GetHeader("Content-Type") != "application/json" {
 			c.Error(fmt.Errorf("%s", "Middleware CheckContentTypeJSON"))
 			c.AbortWithError(http.StatusBadRequest, entity.ErrStatusBadRequest)
@@ -52,6 +56,10 @@ func (m *Middleware) CheckContentTypeJSON() gin.HandlerFunc {
 
 func (m *Middleware) CheckContentTypeText() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if c.Request.Method == http.MethodGet {
+			c.Next()
+			return
+		}
 		if c.GetHeader("Content-Type") != "text/plain" {
 			c.Error(fmt.Errorf("%s", "Middleware CheckContentTypeText"))
 			c.AbortWithError(http.StatusBadRequest, entity.ErrStatusBadRequest)

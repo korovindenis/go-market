@@ -80,5 +80,18 @@ func (h *Handler) GetOrder(c *gin.Context) {
 		ID: userID,
 	}
 
-	h.usecase.GetOrder(ctx, user)
+	orders, err := h.usecase.GetOrder(ctx, user)
+	if err != nil {
+		if errors.Is(err, entity.ErrNoContent) {
+			c.Error(fmt.Errorf("%s %w", "Handler GetOrder usecase.GetOrder ErrNoContent", err))
+			c.AbortWithError(http.StatusNoContent, entity.ErrNoContent)
+			return
+		}
+
+		c.Error(fmt.Errorf("%s %w", "Handler GetOrder usecase.GetOrder", err))
+		c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, orders)
 }

@@ -18,7 +18,7 @@ var (
 	ErrOrderAlreadyUploaded            = errors.New("order already uploaded")
 	// ErrInvalidGzipData           = errors.New("invalid gzip data")
 	// ErrReadingRequestBody        = errors.New("error reading request body")
-	// ErrInputMetricNotFound       = errors.New("metric not found")
+	ErrNoContent = errors.New("no content")
 	// ErrNotImplementedServerError = errors.New("not implemented server error")
 	// ErrStorageInstance           = errors.New("data is not an instance of storage")
 )

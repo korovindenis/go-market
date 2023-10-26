@@ -95,7 +95,7 @@ func (s *Storage) AddOrder(ctx context.Context, order entity.Order, user entity.
 	err := s.db.QueryRowContext(ctx, "SELECT user_id FROM orders WHERE number = $1", order.Number).Scan(&existingOrderUser)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			if _, err := s.db.ExecContext(ctx, "INSERT INTO orders (number, user_id, status) VALUES ($1, $2, 'NEW')", order.Number, user.ID); err != nil {
+			if _, err := s.db.ExecContext(ctx, "INSERT INTO orders (number, user_id, status) VALUES ($1, $2, $3)", order.Number, user.ID, "NEW"); err != nil {
 				return err
 			}
 			return nil
@@ -112,9 +112,28 @@ func (s *Storage) AddOrder(ctx context.Context, order entity.Order, user entity.
 
 func (s *Storage) GetOrder(ctx context.Context, user entity.User) ([]entity.Order, error) {
 	var orders []entity.Order
-	err := s.db.QueryRowContext(ctx, "SELECT * FROM orders WHERE user_id = $1", user.ID).Scan(&orders)
+	rows, err := s.db.QueryContext(ctx, "SELECT number,status,accrual,uploaded_at FROM orders WHERE user_id = $1 ORDER BY id DESC", user.ID)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var order entity.Order
+		err := rows.Scan(&order.Number, &order.Status, &order.Accrual, &order.UploadedAt)
+		if err != nil {
+			return nil, err
+		}
+		orders = append(orders, order)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(orders) == 0 {
+		return nil, entity.ErrNoContent
+	}
+
 	return orders, err
 }

@@ -41,14 +41,14 @@ func New(config config, usecase usecase, auth auth) (*Handler, error) {
 	}, nil
 }
 
-func (h *Handler) getUserIdFromCtx(c *gin.Context) (uint64, error) {
+func (h *Handler) getUserIDFromCtx(c *gin.Context) (uint64, error) {
 	userIDRaw, ok := c.Get("userId")
 	if !ok {
-		return 0, fmt.Errorf("%s", "getUserIdFromCtx Get UserId")
+		return 0, fmt.Errorf("%s", "getUserIDFromCtx Get UserId")
 	}
 	userID, ok := userIDRaw.(uint64)
 	if !ok {
-		return 0, fmt.Errorf("%s", "getUserIdFromCtx userIDRaw")
+		return 0, fmt.Errorf("%s", "getUserIDFromCtx userIDRaw")
 	}
 
 	return userID, nil

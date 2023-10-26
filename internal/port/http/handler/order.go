@@ -37,9 +37,9 @@ func (h *Handler) SetOrder(c *gin.Context) {
 		c.AbortWithError(http.StatusUnprocessableEntity, entity.ErrUnprocessableEntity)
 		return
 	}
-	userID, err := h.getUserIdFromCtx(c)
+	userID, err := h.getUserIDFromCtx(c)
 	if err != nil {
-		c.Error(fmt.Errorf("%s %w", "Handler SetOrder getUserIdFromCtx", err))
+		c.Error(fmt.Errorf("%s %w", "Handler SetOrder getUserIDFromCtx", err))
 		c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
 		return
 	}
@@ -70,9 +70,9 @@ func (h *Handler) SetOrder(c *gin.Context) {
 
 func (h *Handler) GetOrder(c *gin.Context) {
 	ctx := c.Request.Context()
-	userID, err := h.getUserIdFromCtx(c)
+	userID, err := h.getUserIDFromCtx(c)
 	if err != nil {
-		c.Error(fmt.Errorf("%s %w", "Handler GetOrder getUserIdFromCtx", err))
+		c.Error(fmt.Errorf("%s %w", "Handler GetOrder getUserIDFromCtx", err))
 		c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
 		return
 	}

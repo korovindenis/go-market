@@ -13,7 +13,7 @@ import (
 	"github.com/korovindenis/go-market/internal/domain/entity"
 )
 
-const configDefaultPath = "./Configs/Config.dev.yaml"
+const configDefaultPath = "./configs/config.dev.yaml"
 
 type config struct {
 	App        `koanf:"app"`
@@ -58,16 +58,16 @@ func New() (*config, error) {
 	}
 
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("сonfig file does not exist: %s", configPath)
+		return nil, fmt.Errorf("config file does not exist: %s", configPath)
 	}
 
 	if err := k.Load(file.Provider(configPath), yaml.Parser()); err != nil {
-		return nil, fmt.Errorf("error loading сonfig: %v", err)
+		return nil, fmt.Errorf("error loading config: %v", err)
 	}
 
 	var config config
 	if err := k.Unmarshal("", &config); err != nil {
-		return nil, fmt.Errorf("error parsing сonfig: %v", err)
+		return nil, fmt.Errorf("error parsing config: %v", err)
 	}
 
 	config.parseFlags()

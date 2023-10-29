@@ -8,6 +8,7 @@ import (
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
+	"github.com/spf13/pflag"
 )
 
 const configDefaultPath = "./Configs/Config.dev.yaml"
@@ -16,6 +17,7 @@ type config struct {
 	App        `koanf:"app"`
 	Httpserver `koanf:"http_server"`
 	Storage    `koanf:"storage"`
+	Accrual    `koanf:"accrual"`
 }
 
 type App struct {
@@ -41,6 +43,10 @@ type Httpserver struct {
 type Storage struct {
 	ConnectionString string `koanf:"connection_string"`
 	Salt             string `koanf:"salt"`
+}
+
+type Accrual struct {
+	Address string `koanf:"address"`
 }
 
 func New() (*config, error) {
@@ -91,7 +97,24 @@ func (c *config) GetServerHost() string {
 }
 
 func (c *config) GetServerAddress() string {
-	return fmt.Sprintf("%s:%d", c.Httpserver.Host, c.Httpserver.Port)
+	address := pflag.StringP("address", "a", "", "Address and port to run the service")
+	pflag.Parse()
+
+	addr := *address
+
+	if addr == "" {
+		addr = os.Getenv("RUN_ADDRESS")
+	}
+
+	if c.Httpserver.Host != "" && c.Httpserver.Port != 0 {
+		addr = fmt.Sprintf("%s:%d", c.Httpserver.Host, c.Httpserver.Port)
+	}
+
+	if addr == "" {
+		addr = "localhost:8082"
+	}
+
+	return addr
 }
 
 func (c *config) GetServerTimeoutIdle() time.Duration {
@@ -115,9 +138,47 @@ func (c *config) GetServerMaxHeaderBytes() int {
 }
 
 func (c *config) GetStorageConnectionString() string {
-	return c.Storage.ConnectionString
+	address := pflag.StringP("database", "d", "", "Database connection string")
+	pflag.Parse()
+
+	addr := *address
+
+	if addr == "" {
+		addr = os.Getenv("DATABASE_URI")
+	}
+
+	if c.Storage.ConnectionString != "" {
+		addr = c.Storage.ConnectionString
+	}
+
+	if addr == "" {
+		addr = "host=127.0.0.1 user=go password=go dbname=go sslmode=disable"
+	}
+
+	return addr
 }
 
 func (c *config) GetStorageSalt() string {
 	return c.Storage.Salt
+}
+
+func (c *config) GetAccrualAddress() string {
+	address := pflag.StringP("accural", "r", "", "Accural service address")
+	pflag.Parse()
+
+	addr := *address
+
+	if addr == "" {
+		addr = os.Getenv("ACCRUAL_SYSTEM_ADDRESS")
+	}
+
+	if c.Accrual.Address != "" {
+		addr = c.Accrual.Address
+	}
+
+	if addr == "" {
+		addr = "http://localhost:8080"
+	}
+
+	return addr
 }

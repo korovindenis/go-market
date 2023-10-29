@@ -95,7 +95,7 @@ func (a *Auth) GetUserFromToken(tokenString string) (entity.User, error) {
 			return user, fmt.Errorf("error when extracting claims Id: %s", err)
 		}
 
-		user.ID = uint64(userIDFloat)
+		user.ID = int64(userIDFloat)
 	}
 
 	return user, nil

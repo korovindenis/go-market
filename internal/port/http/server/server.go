@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,8 +16,13 @@ type handler interface {
 	Register(c *gin.Context)
 	Login(c *gin.Context)
 
-	GetOrder(c *gin.Context)
+	GetAllOrders(c *gin.Context)
 	SetOrder(c *gin.Context)
+
+	GetBalance(c *gin.Context)
+	WithdrawBalance(c *gin.Context)
+
+	Withdrawals(c *gin.Context)
 }
 
 type middleware interface {
@@ -45,20 +51,26 @@ func Run(ctx context.Context, config config, handler handler, middleware middlew
 
 	// middleware
 	router.Use(gin.Recovery())
+	router.Use(gzip.Gzip(gzip.DefaultCompression))
 	router.Use(middleware.CheckMethod())
 
 	// api
 	user := router.Group("/api/user")
 	{
+		// routes with auth
+		mainPath := user.Group("/", middleware.CheckContentTypeText(), middleware.CheckAuth(), middleware.AddUserInfoToCtx())
+		mainPath.GET("orders", handler.GetAllOrders)
+		mainPath.POST("orders", handler.SetOrder)
+		mainPath.GET("withdrawals", handler.Withdrawals)
+
+		balancePath := user.Group("/balance", middleware.CheckAuth(), middleware.AddUserInfoToCtx())
+		balancePath.GET("/", handler.GetBalance)
+		balancePath.POST("withdraw", handler.WithdrawBalance)
+
 		// routes without auth
 		nonAuth := user.Group("/", middleware.CheckContentTypeJSON())
 		nonAuth.POST("register", handler.Register)
 		nonAuth.POST("login", handler.Login)
-
-		// routes with auth
-		orders := user.Group("/", middleware.CheckContentTypeText(), middleware.CheckAuth(), middleware.AddUserInfoToCtx())
-		orders.GET("orders", handler.GetOrder)
-		orders.POST("orders", handler.SetOrder)
 	}
 
 	// server settings

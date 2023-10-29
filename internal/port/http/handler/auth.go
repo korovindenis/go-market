@@ -27,7 +27,8 @@ func (h *Handler) Register(c *gin.Context) {
 
 	// attempt registration user
 	// with check unique login
-	if err := h.usecase.UserRegister(ctx, user); err != nil {
+	userID, err := h.usecase.UserRegister(ctx, user)
+	if err != nil {
 		c.Error(fmt.Errorf("%s %w", "Handler Register UserRegister", err))
 
 		if errors.Is(err, entity.ErrUserLoginNotUnique) {
@@ -37,15 +38,7 @@ func (h *Handler) Register(c *gin.Context) {
 		c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
 		return
 	}
-
-	// get user from storage
-	userFromStorage, err := h.usecase.GetUser(ctx, user)
-	if err != nil {
-		c.Error(fmt.Errorf("%s %w", "Handler Register GetUser", err))
-		c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
-		return
-	}
-	user.ID = userFromStorage.ID
+	user.ID = userID
 
 	// generation token
 	token, err := h.auth.GenerateToken(user)

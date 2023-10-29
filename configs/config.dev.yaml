@@ -6,7 +6,7 @@ app:
 http_server:
   mode: debug
   host: 127.0.0.1
-  port: 8080
+  port: 8082
   maxHeaderBytes: 16384
   timeouts:
     idle: 5
@@ -16,3 +16,5 @@ http_server:
 storage:
   connection_string: host=127.0.0.1 user=go password=go dbname=go sslmode=disable
   salt: gomarket
+accrual:
+  address: "http://localhost:8080"

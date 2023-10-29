@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strconv"
 
 	"github.com/jackc/pgerrcode"
 	"github.com/korovindenis/go-market/internal/domain/entity"
@@ -49,17 +50,39 @@ func (s *Storage) runMigrations() error {
 	return goose.Run("up", s.db, "deployments/db/migrations")
 }
 
-func (s *Storage) UserRegister(ctx context.Context, user entity.User) error {
+func (s *Storage) UserRegister(ctx context.Context, user entity.User) (int64, error) {
 	// add user or return ErrUserLoginNotUnique
-	if _, err := s.db.ExecContext(ctx, "INSERT INTO users (login, password) VALUES ($1, $2)", user.Login, user.Password); err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
-			return entity.ErrUserLoginNotUnique
-		}
-		return err
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
 	}
 
-	return nil
+	var userID int64
+	err = tx.QueryRowContext(ctx, "INSERT INTO users (login, password) VALUES ($1, $2) RETURNING id", user.Login, user.Password).Scan(&userID)
+	if err != nil {
+		tx.Rollback()
+
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+			return 0, entity.ErrUserLoginNotUnique
+		}
+		return 0, err
+	}
+
+	_, err = tx.ExecContext(ctx, "INSERT INTO balances (user_id) VALUES ($1)", userID)
+	if err != nil {
+		// Откат транзакции в учае ошибки
+		tx.Rollback()
+		return 0, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return 0, err
+	}
+
+	return userID, nil
 }
 
 // auth user or return ErrUserLoginUnauthorized
@@ -76,16 +99,11 @@ func (s *Storage) UserLogin(ctx context.Context, user entity.User) error {
 
 	return nil
 }
-
 func (s *Storage) GetUser(ctx context.Context, userFromReq entity.User) (entity.User, error) {
-	var userFromStorageID uint64
-	if err := s.db.QueryRowContext(ctx, "SELECT id FROM users WHERE login = $1", userFromReq.Login).Scan(&userFromStorageID); err != nil {
-		return entity.User{}, err
+	var userFromStorage entity.User
+	if err := s.db.QueryRowContext(ctx, "SELECT id FROM users WHERE login = $1", userFromReq.Login).Scan(&userFromStorage.ID); err != nil {
+		return userFromStorage, err
 	}
-	userFromStorage := entity.User{
-		ID: userFromStorageID,
-	}
-
 	return userFromStorage, nil
 }
 
@@ -109,8 +127,7 @@ func (s *Storage) AddOrder(ctx context.Context, order entity.Order, user entity.
 	}
 	return entity.ErrOrderAlreadyUploadedAnotherUser
 }
-
-func (s *Storage) GetOrder(ctx context.Context, user entity.User) ([]entity.Order, error) {
+func (s *Storage) GetAllOrders(ctx context.Context, user entity.User) ([]entity.Order, error) {
 	var orders []entity.Order
 	rows, err := s.db.QueryContext(ctx, "SELECT number,status,accrual,uploaded_at FROM orders WHERE user_id = $1 ORDER BY id DESC", user.ID)
 	if err != nil {
@@ -136,4 +153,130 @@ func (s *Storage) GetOrder(ctx context.Context, user entity.User) ([]entity.Orde
 	}
 
 	return orders, err
+}
+func (s *Storage) GetAllNotProcessedOrders(ctx context.Context) ([]entity.Order, error) {
+	var orders []entity.Order
+	rows, err := s.db.QueryContext(ctx, "SELECT number,status,accrual,uploaded_at FROM orders WHERE status NOT IN ($1,$2)", entity.StatusInvalid, entity.StatusProcessed)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var order entity.Order
+		err := rows.Scan(&order.Number, &order.Status, &order.Accrual, &order.UploadedAt)
+		if err != nil {
+			return nil, err
+		}
+		orders = append(orders, order)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(orders) == 0 {
+		return nil, entity.ErrNoContent
+	}
+
+	return orders, err
+}
+func (s *Storage) SetOrderStatusAndAccrual(ctx context.Context, order entity.Order) error {
+	if _, err := s.db.ExecContext(ctx, "UPDATE orders SET status = $1, accrual = $2 WHERE number = $3", order.Status, order.Accrual, order.Number); err != nil {
+		return err
+	}
+	return nil
+}
+
+// balance
+func (s *Storage) GetBalance(ctx context.Context, user entity.User) (entity.Balance, error) {
+	var balance entity.Balance
+	rows, err := s.db.QueryContext(ctx, "SELECT current,withdrawn FROM balances WHERE user_id = $1", user.ID)
+	if err != nil {
+		return balance, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		err := rows.Scan(&balance.Current, &balance.Withdrawn)
+		if err != nil {
+			return balance, err
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return balance, err
+	}
+
+	return balance, nil
+}
+func (s *Storage) WithdrawBalance(ctx context.Context, balance entity.BalanceUpdate, user entity.User) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var currentBalance float64
+	if err := tx.QueryRowContext(ctx, "SELECT current FROM balances WHERE id = $1", user.ID).Scan(&currentBalance); err != nil {
+		return err
+	}
+
+	if currentBalance < balance.Sum {
+		return entity.ErrInsufficientBalance
+	}
+
+	if _, err := tx.ExecContext(ctx, "UPDATE balances SET current = current - $1, withdrawn = withdrawn + $1 WHERE id = $2", balance.Sum, user.ID); err != nil {
+		return err
+	}
+
+	if _, err := tx.ExecContext(ctx, "INSERT INTO orders (number, sum, user_id, status) VALUES ($1, $2, $3, $4)", balance.Order, balance.Sum, user.ID, "PROCESSED"); err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Withdrawals
+func (s *Storage) Withdrawals(ctx context.Context, user entity.User) ([]entity.BalanceUpdate, error) {
+	var orders []entity.Order
+	rows, err := s.db.QueryContext(ctx, "SELECT number,sum,uploaded_at FROM orders WHERE sum > $1 AND status = $2 AND user_id = $3 ORDER BY id DESC", 0, entity.StatusProcessed, user.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var order entity.Order
+		err := rows.Scan(&order.Number, &order.Sum, &order.UploadedAt)
+		if err != nil {
+			return nil, err
+		}
+		orders = append(orders, order)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(orders) == 0 {
+		return nil, entity.ErrNoContent
+	}
+
+	var balances []entity.BalanceUpdate
+	for _, order := range orders {
+		balance := entity.BalanceUpdate{
+			Order:      strconv.FormatUint(order.Number, 10),
+			Sum:        order.Sum,
+			UploadedAt: order.UploadedAt,
+		}
+		balances = append(balances, balance)
+	}
+
+	return balances, nil
 }

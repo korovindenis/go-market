@@ -10,12 +10,17 @@ import (
 )
 
 type usecase interface {
-	UserRegister(ctx context.Context, user entity.User) error
+	UserRegister(ctx context.Context, user entity.User) (int64, error)
 	UserLogin(ctx context.Context, user entity.User) error
 	GetUser(ctx context.Context, userFromReq entity.User) (entity.User, error)
 
-	GetOrder(ctx context.Context, user entity.User) ([]entity.Order, error)
+	GetAllOrders(ctx context.Context, user entity.User) ([]entity.Order, error)
 	AddOrder(ctx context.Context, order entity.Order, user entity.User) error
+
+	GetBalance(ctx context.Context, user entity.User) (entity.Balance, error)
+	WithdrawBalance(ctx context.Context, balance entity.BalanceUpdate, user entity.User) error
+
+	Withdrawals(ctx context.Context, user entity.User) ([]entity.BalanceUpdate, error)
 }
 
 type auth interface {
@@ -41,12 +46,12 @@ func New(config config, usecase usecase, auth auth) (*Handler, error) {
 	}, nil
 }
 
-func (h *Handler) getUserIDFromCtx(c *gin.Context) (uint64, error) {
+func (h *Handler) getUserIDFromCtx(c *gin.Context) (int64, error) {
 	userIDRaw, ok := c.Get("userId")
 	if !ok {
 		return 0, fmt.Errorf("%s", "getUserIDFromCtx Get UserId")
 	}
-	userID, ok := userIDRaw.(uint64)
+	userID, ok := userIDRaw.(int64)
 	if !ok {
 		return 0, fmt.Errorf("%s", "getUserIDFromCtx userIDRaw")
 	}

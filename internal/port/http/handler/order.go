@@ -68,11 +68,11 @@ func (h *Handler) SetOrder(c *gin.Context) {
 	c.Status(http.StatusAccepted)
 }
 
-func (h *Handler) GetOrder(c *gin.Context) {
+func (h *Handler) GetAllOrders(c *gin.Context) {
 	ctx := c.Request.Context()
 	userID, err := h.getUserIDFromCtx(c)
 	if err != nil {
-		c.Error(fmt.Errorf("%s %w", "Handler GetOrder getUserIDFromCtx", err))
+		c.Error(fmt.Errorf("%s %w", "Handler GetAllOrders getUserIDFromCtx", err))
 		c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
 		return
 	}
@@ -80,15 +80,15 @@ func (h *Handler) GetOrder(c *gin.Context) {
 		ID: userID,
 	}
 
-	orders, err := h.usecase.GetOrder(ctx, user)
+	orders, err := h.usecase.GetAllOrders(ctx, user)
 	if err != nil {
 		if errors.Is(err, entity.ErrNoContent) {
-			c.Error(fmt.Errorf("%s %w", "Handler GetOrder usecase.GetOrder ErrNoContent", err))
+			c.Error(fmt.Errorf("%s %w", "Handler GetAllOrders usecase.GetAllOrders ErrNoContent", err))
 			c.AbortWithError(http.StatusNoContent, entity.ErrNoContent)
 			return
 		}
 
-		c.Error(fmt.Errorf("%s %w", "Handler GetOrder usecase.GetOrder", err))
+		c.Error(fmt.Errorf("%s %w", "Handler GetAllOrders usecase.GetAllOrders", err))
 		c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
 		return
 	}

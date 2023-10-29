@@ -9,7 +9,8 @@ CREATE TABLE orders (
     id BIGSERIAL PRIMARY KEY,
     number BIGINT NOT NULL UNIQUE,
     user_id BIGSERIAL NOT NULL,
-    accrual INTEGER DEFAULT 0,
+    sum DECIMAL(10, 2) DEFAULT 0,
+    accrual DECIMAL(10, 2) DEFAULT 0,
     uploaded_at TIMESTAMP DEFAULT current_timestamp,
     status VARCHAR(20) NOT NULL CHECK (status IN ('NEW', 'PROCESSING', 'INVALID', 'PROCESSED')),
     FOREIGN KEY (user_id) REFERENCES users(id)
@@ -18,10 +19,8 @@ CREATE TABLE orders (
 CREATE TABLE balances (
     id BIGSERIAL PRIMARY KEY,
     user_id INT NOT NULL,
-    balance DECIMAL(10, 2) NOT NULL,
-    balance_withdrawn DECIMAL(10, 2) NOT NULL,
-    created_at TIMESTAMP DEFAULT current_timestamp,
-    updated_at TIMESTAMP DEFAULT current_timestamp,
+    current DECIMAL(10, 2) DEFAULT 0,
+    withdrawn DECIMAL(10, 2) DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 

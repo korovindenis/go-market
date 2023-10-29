@@ -20,5 +20,5 @@ var (
 	// ErrReadingRequestBody        = errors.New("error reading request body")
 	ErrNoContent = errors.New("no content")
 	// ErrNotImplementedServerError = errors.New("not implemented server error")
-	// ErrStorageInstance           = errors.New("data is not an instance of storage")
+	ErrInsufficientBalance = errors.New("insufficient balance")
 )

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/korovindenis/go-market/internal/adapters/accrual"
 	"github.com/korovindenis/go-market/internal/adapters/auth"
 	"github.com/korovindenis/go-market/internal/adapters/config"
 	"github.com/korovindenis/go-market/internal/adapters/logger"
@@ -66,6 +67,13 @@ func main() {
 	// cancel the context when main() is terminated
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	// accrual
+	accrual, err := accrual.New(config, storage)
+	if err != nil {
+		logger.Fatal("init accrual", zap.Error(err))
+	}
+	go accrual.Run(ctx)
 
 	if err := server.Run(ctx, config, handler, middleware); err != nil {
 		logger.Fatal("run web server", zap.Error(err))

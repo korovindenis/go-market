@@ -52,13 +52,10 @@ func (a *Accrual) Run(ctx context.Context) {
 			orders, _ := a.GetAllNotProcessedOrders(ctx)
 			for _, order := range orders {
 				accrualResp := accrualRespose{}
-				resp, err := restClient.R().
+				resp, _ := restClient.R().
 					EnableTrace().
 					SetResult(&accrualResp).
 					Get(fmt.Sprintf("%s/api/orders/%d", accrualAddress, order.Number))
-				if err != nil {
-					fmt.Println(err)
-				}
 				if resp.StatusCode() == http.StatusOK {
 					newOrder := entity.Order{
 						Number:  order.Number,

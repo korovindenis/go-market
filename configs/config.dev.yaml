@@ -13,7 +13,7 @@ http_server:
     read: 10
     write: 10
 storage:
-  connection_string: host=localhost user=go password=go dbname=go sslmode=disable
+  connection_string: host=127.0.0.1:5432 user=go password=go dbname=go sslmode=disable
   salt: gomarket
 accrual:
   address: "http://localhost:8082"

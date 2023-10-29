@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/korovindenis/go-market/internal/adapters/accrual"
@@ -27,6 +28,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Printf("%+v", config)
 
 	// init logger
 	logger, err := logger.New(config)

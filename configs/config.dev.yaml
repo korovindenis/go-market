@@ -5,8 +5,7 @@ app:
   token_lifetime: 6
 http_server:
   mode: debug
-  host: 127.0.0.1
-  port: 8082
+  address: 127.0.0.1:8082
   maxHeaderBytes: 16384
   timeouts:
     idle: 5

@@ -4,7 +4,7 @@ import "errors"
 
 var (
 	// ErrMetricNotFound            = errors.New("metric not set")
-	// ErrEnvVarNotFound            = errors.New("env var not set")
+	ErrEnvVarNotFound = errors.New("env var not set")
 	// ErrInvalidURLFormat          = errors.New("invalid URL format")
 	ErrMethodNotAllowed     = errors.New("method not allowed")
 	ErrUnsupportedMediaType = errors.New("unsupported media type")

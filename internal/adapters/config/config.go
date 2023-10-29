@@ -5,10 +5,12 @@ import (
 	"os"
 	"time"
 
+	"flag"
+
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
-	"github.com/spf13/pflag"
+	"github.com/korovindenis/go-market/internal/domain/entity"
 )
 
 const configDefaultPath = "./Configs/Config.dev.yaml"
@@ -29,8 +31,7 @@ type App struct {
 
 type Httpserver struct {
 	Mode           string `koanf:"mode"`
-	Host           string `koanf:"host"`
-	Port           int    `koanf:"port"`
+	Address        string `koanf:"address"`
 	MaxHeaderBytes int    `koanf:"maxHeaderBytes"`
 	Timeouts       struct {
 		Idle       int `koanf:"idle"`
@@ -69,6 +70,8 @@ func New() (*config, error) {
 		return nil, fmt.Errorf("error parsing сonfig: %v", err)
 	}
 
+	config.parseFlags()
+
 	return &config, nil
 }
 
@@ -92,29 +95,25 @@ func (c *config) GetServerMode() string {
 	return c.Httpserver.Mode
 }
 
-func (c *config) GetServerHost() string {
-	return c.Httpserver.Host
+func (c *config) parseFlags() {
+	flag.StringVar(&c.Httpserver.Address, "a", "localhost:8082", "Address and port to run the service")
+	flag.StringVar(&c.Storage.ConnectionString, "d", "host=127.0.0.1 user=go password=go dbname=go sslmode=disable", "Database connection string")
+	flag.StringVar(&c.Accrual.Address, "r", "http://localhost:8080", "Accural service address")
+	flag.Parse()
+
+	if envKey, err := getEnvVariable("RUN_ADDRESS"); err == nil {
+		c.Httpserver.Address = envKey
+	}
+	if envKey, err := getEnvVariable("DATABASE_URI"); err == nil {
+		c.Storage.ConnectionString = envKey
+	}
+	if envKey, err := getEnvVariable("ACCRUAL_SYSTEM_ADDRESS"); err == nil {
+		c.Accrual.Address = envKey
+	}
 }
 
 func (c *config) GetServerAddress() string {
-	address := pflag.StringP("address", "a", "", "Address and port to run the service")
-	pflag.Parse()
-
-	addr := *address
-
-	if addr == "" {
-		addr = os.Getenv("RUN_ADDRESS")
-	}
-
-	if c.Httpserver.Host != "" && c.Httpserver.Port != 0 {
-		addr = fmt.Sprintf("%s:%d", c.Httpserver.Host, c.Httpserver.Port)
-	}
-
-	if addr == "" {
-		addr = "localhost:8082"
-	}
-
-	return addr
+	return c.Httpserver.Address
 }
 
 func (c *config) GetServerTimeoutIdle() time.Duration {
@@ -138,24 +137,7 @@ func (c *config) GetServerMaxHeaderBytes() int {
 }
 
 func (c *config) GetStorageConnectionString() string {
-	address := pflag.StringP("database", "d", "", "Database connection string")
-	pflag.Parse()
-
-	addr := *address
-
-	if addr == "" {
-		addr = os.Getenv("DATABASE_URI")
-	}
-
-	if c.Storage.ConnectionString != "" {
-		addr = c.Storage.ConnectionString
-	}
-
-	if addr == "" {
-		addr = "host=127.0.0.1 user=go password=go dbname=go sslmode=disable"
-	}
-
-	return addr
+	return c.Storage.ConnectionString
 }
 
 func (c *config) GetStorageSalt() string {
@@ -163,22 +145,12 @@ func (c *config) GetStorageSalt() string {
 }
 
 func (c *config) GetAccrualAddress() string {
-	address := pflag.StringP("accural", "r", "", "Accural service address")
-	pflag.Parse()
+	return c.Accrual.Address
+}
 
-	addr := *address
-
-	if addr == "" {
-		addr = os.Getenv("ACCRUAL_SYSTEM_ADDRESS")
+func getEnvVariable(varName string) (string, error) {
+	if envVarValue, exists := os.LookupEnv(varName); exists && envVarValue != "" {
+		return envVarValue, nil
 	}
-
-	if c.Accrual.Address != "" {
-		addr = c.Accrual.Address
-	}
-
-	if addr == "" {
-		addr = "http://localhost:8080"
-	}
-
-	return addr
+	return "", entity.ErrEnvVarNotFound
 }

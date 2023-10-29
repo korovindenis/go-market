@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"strconv"
 
 	"github.com/jackc/pgerrcode"
 	"github.com/korovindenis/go-market/internal/domain/entity"
@@ -271,7 +270,7 @@ func (s *Storage) Withdrawals(ctx context.Context, user entity.User) ([]entity.B
 	var balances []entity.BalanceUpdate
 	for _, order := range orders {
 		balance := entity.BalanceUpdate{
-			Order:      strconv.FormatUint(order.Number, 10),
+			Order:      order.Number,
 			Sum:        order.Sum,
 			UploadedAt: order.UploadedAt,
 		}

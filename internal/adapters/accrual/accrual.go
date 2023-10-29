@@ -55,7 +55,7 @@ func (a *Accrual) Run(ctx context.Context) {
 				resp, _ := restClient.R().
 					EnableTrace().
 					SetResult(&accrualResp).
-					Get(fmt.Sprintf("%s/api/orders/%d", accrualAddress, order.Number))
+					Get(fmt.Sprintf("%s/api/orders/%s", accrualAddress, order.Number))
 				if resp.StatusCode() == http.StatusOK {
 					newOrder := entity.Order{
 						Number:  order.Number,

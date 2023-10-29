@@ -1,7 +1,6 @@
 package entity
 
 import (
-	"strconv"
 	"time"
 
 	"github.com/ShiraazMoollatjie/goluhn"
@@ -16,7 +15,7 @@ const (
 )
 
 type Order struct {
-	Number     uint64    `json:"number"`
+	Number     string    `json:"number"`
 	Status     string    `json:"Status"`
 	Accrual    float64   `json:"accrual,omitempty"`
 	UploadedAt time.Time `json:"uploaded_at"`
@@ -25,7 +24,7 @@ type Order struct {
 
 // Luhn algorithm
 func (o *Order) IsValidNumber() error {
-	if err := goluhn.Validate(strconv.FormatUint(o.Number, 10)); err != nil {
+	if err := goluhn.Validate(o.Number); err != nil {
 		return err
 	}
 	return nil

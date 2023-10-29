@@ -31,40 +31,40 @@ func New(config config, auth auth) (*Middleware, error) {
 
 func (m *Middleware) CheckMethod() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// if c.Request.Method != http.MethodPost && c.Request.Method != http.MethodGet {
-		// 	c.AbortWithError(http.StatusMethodNotAllowed, entity.ErrMethodNotAllowed)
-		// 	return
-		// }
+		if c.Request.Method != http.MethodPost && c.Request.Method != http.MethodGet {
+			c.AbortWithError(http.StatusMethodNotAllowed, entity.ErrMethodNotAllowed)
+			return
+		}
 		c.Next()
 	}
 }
 
 func (m *Middleware) CheckContentTypeJSON() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// if c.Request.Method == http.MethodGet {
-		// 	c.Next()
-		// 	return
-		// }
-		// if c.GetHeader("Content-Type") != "application/json" {
-		// 	c.Error(fmt.Errorf("%s", "Middleware CheckContentTypeJSON"))
-		// 	c.AbortWithError(http.StatusBadRequest, entity.ErrStatusBadRequest)
-		// 	return
-		// }
+		if c.Request.Method == http.MethodGet {
+			c.Next()
+			return
+		}
+		if c.GetHeader("Content-Type") != "application/json" {
+			c.Error(fmt.Errorf("%s", "Middleware CheckContentTypeJSON"))
+			c.AbortWithError(http.StatusBadRequest, entity.ErrStatusBadRequest)
+			return
+		}
 		c.Next()
 	}
 }
 
 func (m *Middleware) CheckContentTypeText() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// if c.Request.Method == http.MethodGet {
-		// 	c.Next()
-		// 	return
-		// }
-		// if c.GetHeader("Content-Type") != "text/plain" {
-		// 	c.Error(fmt.Errorf("%s", "Middleware CheckContentTypeText"))
-		// 	c.AbortWithError(http.StatusBadRequest, entity.ErrStatusBadRequest)
-		// 	return
-		// }
+		if c.Request.Method == http.MethodGet {
+			c.Next()
+			return
+		}
+		if c.GetHeader("Content-Type") != "text/plain" {
+			c.Error(fmt.Errorf("%s", "Middleware CheckContentTypeText"))
+			c.AbortWithError(http.StatusBadRequest, entity.ErrStatusBadRequest)
+			return
+		}
 		c.Next()
 	}
 }

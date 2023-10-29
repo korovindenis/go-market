@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/korovindenis/go-market/internal/domain/entity"
@@ -21,14 +20,8 @@ func (h *Handler) SetOrder(c *gin.Context) {
 		c.AbortWithError(http.StatusBadRequest, entity.ErrStatusBadRequest)
 		return
 	}
-	num, err := strconv.ParseUint(string(body), 10, 64)
-	if err != nil {
-		c.Error(fmt.Errorf("%s %w", "Handler SetOrder ParseUint", err))
-		c.AbortWithError(http.StatusUnprocessableEntity, entity.ErrUnprocessableEntity)
-		return
-	}
 	order := entity.Order{
-		Number: num,
+		Number: string(body),
 	}
 
 	// check input data

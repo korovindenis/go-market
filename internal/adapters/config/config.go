@@ -96,9 +96,9 @@ func (c *config) GetServerMode() string {
 }
 
 func (c *config) parseFlags() {
-	flag.StringVar(&c.Httpserver.Address, "a", "localhost:8082", "Address and port to run the service")
+	flag.StringVar(&c.Httpserver.Address, "a", "localhost:8080", "Address and port to run the service")
 	flag.StringVar(&c.Storage.ConnectionString, "d", "host=127.0.0.1 user=go password=go dbname=go sslmode=disable", "Database connection string")
-	flag.StringVar(&c.Accrual.Address, "r", "http://localhost:8080", "Accural service address")
+	flag.StringVar(&c.Accrual.Address, "r", "http://localhost:8082", "Accural service address")
 	flag.Parse()
 
 	if envKey, err := getEnvVariable("RUN_ADDRESS"); err == nil {

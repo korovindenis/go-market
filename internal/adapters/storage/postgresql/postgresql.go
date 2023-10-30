@@ -51,7 +51,6 @@ func (s *Storage) runMigrations() error {
 
 func (s *Storage) UserRegister(ctx context.Context, user entity.User) (int64, error) {
 	// add user or return ErrUserLoginNotUnique
-
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err
@@ -71,7 +70,7 @@ func (s *Storage) UserRegister(ctx context.Context, user entity.User) (int64, er
 
 	_, err = tx.ExecContext(ctx, "INSERT INTO balances (user_id) VALUES ($1)", userID)
 	if err != nil {
-		// Откат транзакции в учае ошибки
+
 		tx.Rollback()
 		return 0, err
 	}
@@ -181,9 +180,34 @@ func (s *Storage) GetAllNotProcessedOrders(ctx context.Context) ([]entity.Order,
 	return orders, err
 }
 func (s *Storage) SetOrderStatusAndAccrual(ctx context.Context, order entity.Order) error {
-	if _, err := s.db.ExecContext(ctx, "UPDATE orders SET status = $1, accrual = $2 WHERE number = $3", order.Status, order.Accrual, order.Number); err != nil {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
 		return err
 	}
+
+	var userID int64
+	err = tx.QueryRowContext(ctx, "UPDATE orders SET status = $1, accrual = $2 WHERE number = $3 RETURNING user_id", order.Status, order.Accrual, order.Number).Scan(&userID)
+	if err != nil {
+		tx.Rollback()
+
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+			return entity.ErrUserLoginNotUnique
+		}
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx, "UPDATE balances SET current = current + $1 WHERE user_id = $2", order.Accrual, userID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

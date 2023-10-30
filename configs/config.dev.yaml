@@ -1,6 +1,6 @@
 app:
   logs_level: info
-  secret_key: Hfgtyh4nd3f!
+  secret_key: xxxxxxxx
   token_name: gomarket_auth
   token_lifetime: 6
 http_server:

@@ -8,7 +8,7 @@ import (
 	"github.com/korovindenis/go-market/internal/adapters/auth"
 	"github.com/korovindenis/go-market/internal/adapters/config"
 	"github.com/korovindenis/go-market/internal/adapters/logger"
-	storage "github.com/korovindenis/go-market/internal/adapters/storage/postgresql"
+	bd "github.com/korovindenis/go-market/internal/adapters/storage/postgresql"
 	"github.com/korovindenis/go-market/internal/domain/usecases"
 	"github.com/korovindenis/go-market/internal/port/http/handler"
 	"github.com/korovindenis/go-market/internal/port/http/middleware"
@@ -34,8 +34,14 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// init bd
+	sqlBd, err := bd.Init(config)
+	if err != nil {
+		logger.Fatal("init bd", zap.Error(err))
+	}
+
 	// init storage
-	storage, err := storage.New(config)
+	storage, err := bd.New(sqlBd)
 	if err != nil {
 		logger.Fatal("init storage", zap.Error(err))
 	}

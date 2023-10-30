@@ -11,7 +11,6 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/pressly/goose"
 )
 
 const (
@@ -20,33 +19,14 @@ const (
 
 type Storage struct {
 	db *sql.DB
-	config
 }
 
-type config interface {
-	GetStorageConnectionString() string
-}
-
-func New(config config) (*Storage, error) {
-	db, err := sql.Open("pgx", config.GetStorageConnectionString())
-	if err != nil {
-		return nil, err
-	}
-
+func New(db *sql.DB) (*Storage, error) {
 	storage := &Storage{
 		db,
-		config,
-	}
-
-	if err := storage.runMigrations(); err != nil {
-		return nil, err
 	}
 
 	return storage, nil
-}
-
-func (s *Storage) runMigrations() error {
-	return goose.Run("up", s.db, "deployments/db/migrations")
 }
 
 func (s *Storage) UserRegister(ctx context.Context, user entity.User) (int64, error) {

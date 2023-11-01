@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -78,7 +79,12 @@ func (a *Accrual) worker(ctx context.Context, restClient *resty.Client, accrualA
 				Get(fmt.Sprintf("%s/api/orders/%s", accrualAddress, order.Number))
 
 			if resp.StatusCode() == http.StatusTooManyRequests {
-				time.Sleep(1 * time.Second)
+				retryAfterHeader := resp.Header().Get("Retry-After")
+				if retryAfterHeader != "" {
+					secondsToWait, _ := strconv.Atoi(retryAfterHeader)
+					time.Sleep(time.Duration(secondsToWait) * time.Second)
+				}
+
 				continue
 			}
 

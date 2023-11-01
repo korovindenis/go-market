@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/korovindenis/go-market/internal/domain/entity"
 )
+
+const maxWorker = 10
 
 type storage interface {
 	GetAllNotProcessedOrders(ctx context.Context) ([]entity.Order, error)
@@ -22,6 +25,7 @@ type config interface {
 type Accrual struct {
 	storage
 	config
+	mu sync.Mutex
 }
 
 type accrualRespose struct {
@@ -32,18 +36,18 @@ type accrualRespose struct {
 
 func New(config config, storage storage) (*Accrual, error) {
 	return &Accrual{
-		storage,
-		config,
+		storage: storage,
+		config:  config,
 	}, nil
 }
 
 func (a *Accrual) Run(ctx context.Context) {
 	accrualAddress := a.config.GetAccrualAddress()
 	restClient := resty.New()
-	restClient.SetDebug(true)
+	notProcessedOrdersCH := make(chan entity.Order, maxWorker)
+
 	updateTicker := time.NewTicker(1 * time.Second)
 	defer updateTicker.Stop()
-
 	for {
 		select {
 		case <-ctx.Done():
@@ -51,28 +55,44 @@ func (a *Accrual) Run(ctx context.Context) {
 		case <-updateTicker.C:
 			orders, _ := a.GetAllNotProcessedOrders(ctx)
 			for _, order := range orders {
-				for {
-					accrualResp := accrualRespose{}
-					resp, _ := restClient.R().
-						EnableTrace().
-						SetResult(&accrualResp).
-						Get(fmt.Sprintf("%s/api/orders/%s", accrualAddress, order.Number))
+				notProcessedOrdersCH <- order
 
-					if resp.StatusCode() == http.StatusTooManyRequests {
-						time.Sleep(1 * time.Second)
-						continue
-					}
-					if resp.StatusCode() == http.StatusOK {
-						newOrder := entity.Order{
-							Number:  order.Number,
-							Status:  accrualResp.Status,
-							Accrual: accrualResp.Accrual,
-						}
-						_ = a.SetOrderStatusAndAccrual(ctx, newOrder)
-					}
-					break
-				}
+				go a.worker(ctx, restClient, accrualAddress, notProcessedOrdersCH)
 			}
+		}
+	}
+}
+
+func (a *Accrual) worker(ctx context.Context, restClient *resty.Client, accrualAddress string, orderCh <-chan entity.Order) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case order := <-orderCh:
+			accrualResp := accrualRespose{}
+			resp, _ := restClient.R().
+				EnableTrace().
+				SetResult(&accrualResp).
+				Get(fmt.Sprintf("%s/api/orders/%s", accrualAddress, order.Number))
+
+			if resp.StatusCode() == http.StatusTooManyRequests {
+				time.Sleep(1 * time.Second)
+				continue
+			}
+
+			if resp.StatusCode() == http.StatusOK {
+				newOrder := entity.Order{
+					Number:  order.Number,
+					Status:  accrualResp.Status,
+					Accrual: accrualResp.Accrual,
+				}
+
+				a.mu.Lock()
+				_ = a.SetOrderStatusAndAccrual(ctx, newOrder)
+				a.mu.Unlock()
+			}
+
+			return
 		}
 	}
 }

@@ -44,7 +44,9 @@ func New(config config, storage storage) (*Accrual, error) {
 func (a *Accrual) Run(ctx context.Context) {
 	accrualAddress := a.config.GetAccrualAddress()
 	restClient := resty.New()
+
 	notProcessedOrdersCH := make(chan entity.Order, maxWorker)
+	defer close(notProcessedOrdersCH)
 
 	updateTicker := time.NewTicker(1 * time.Second)
 	defer updateTicker.Stop()

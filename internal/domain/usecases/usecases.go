@@ -3,6 +3,7 @@ package usecases
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/korovindenis/go-market/internal/domain/entity"
 	"golang.org/x/crypto/bcrypt"
@@ -29,12 +30,13 @@ type config interface {
 type Usecases struct {
 	storage
 	config
+	mu sync.Mutex
 }
 
 func New(config config, storage storage) (*Usecases, error) {
 	return &Usecases{
-		storage,
-		config,
+		storage: storage,
+		config:  config,
 	}, nil
 }
 
@@ -79,7 +81,11 @@ func (u *Usecases) GetBalance(ctx context.Context, user entity.User) (entity.Bal
 	return u.storage.GetBalance(ctx, user)
 }
 func (u *Usecases) WithdrawBalance(ctx context.Context, balance entity.BalanceUpdate, user entity.User) error {
-	return u.storage.WithdrawBalance(ctx, balance, user)
+	u.mu.Lock()
+	res := u.storage.WithdrawBalance(ctx, balance, user)
+	u.mu.Unlock()
+
+	return res
 }
 
 // Withdrawals

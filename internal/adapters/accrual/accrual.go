@@ -51,18 +51,26 @@ func (a *Accrual) Run(ctx context.Context) {
 		case <-updateTicker.C:
 			orders, _ := a.GetAllNotProcessedOrders(ctx)
 			for _, order := range orders {
-				accrualResp := accrualRespose{}
-				resp, _ := restClient.R().
-					EnableTrace().
-					SetResult(&accrualResp).
-					Get(fmt.Sprintf("%s/api/orders/%s", accrualAddress, order.Number))
-				if resp.StatusCode() == http.StatusOK {
-					newOrder := entity.Order{
-						Number:  order.Number,
-						Status:  accrualResp.Status,
-						Accrual: accrualResp.Accrual,
+				for {
+					accrualResp := accrualRespose{}
+					resp, _ := restClient.R().
+						EnableTrace().
+						SetResult(&accrualResp).
+						Get(fmt.Sprintf("%s/api/orders/%s", accrualAddress, order.Number))
+
+					if resp.StatusCode() == http.StatusTooManyRequests {
+						time.Sleep(1 * time.Second)
+						continue
 					}
-					_ = a.SetOrderStatusAndAccrual(ctx, newOrder)
+					if resp.StatusCode() == http.StatusOK {
+						newOrder := entity.Order{
+							Number:  order.Number,
+							Status:  accrualResp.Status,
+							Accrual: accrualResp.Accrual,
+						}
+						_ = a.SetOrderStatusAndAccrual(ctx, newOrder)
+					}
+					break
 				}
 			}
 		}

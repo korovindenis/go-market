@@ -134,7 +134,7 @@ func (s *Storage) GetAllOrders(ctx context.Context, user entity.User) ([]entity.
 }
 func (s *Storage) GetAllNotProcessedOrders(ctx context.Context) ([]entity.Order, error) {
 	var orders []entity.Order
-	rows, err := s.db.QueryContext(ctx, "SELECT number,status,accrual,uploaded_at FROM orders WHERE status NOT IN ($1,$2) FOR UPDATE", entity.StatusInvalid, entity.StatusProcessed)
+	rows, err := s.db.QueryContext(ctx, "SELECT number,status,accrual,uploaded_at FROM orders WHERE status NOT IN ($1,$2)", entity.StatusInvalid, entity.StatusProcessed)
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +194,7 @@ func (s *Storage) SetOrderStatusAndAccrual(ctx context.Context, order entity.Ord
 // balance
 func (s *Storage) GetBalance(ctx context.Context, user entity.User) (entity.Balance, error) {
 	var balance entity.Balance
-	rows, err := s.db.QueryContext(ctx, "SELECT current,withdrawn FROM balances WHERE user_id = $1 FOR UPDATE", user.ID)
+	rows, err := s.db.QueryContext(ctx, "SELECT current,withdrawn FROM balances WHERE user_id = $1", user.ID)
 	if err != nil {
 		return balance, err
 	}

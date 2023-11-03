@@ -177,7 +177,7 @@ func (s *Storage) SetOrderStatusAndAccrual(ctx context.Context, order entity.Ord
 		return err
 	}
 
-	_, err = tx.ExecContext(ctx, "UPDATE balances SET current = current + $1 WHERE user_id = $2 FOR UPDATE", order.Accrual, userID)
+	_, err = tx.ExecContext(ctx, "UPDATE balances SET current = current + $1 WHERE user_id = $2", order.Accrual, userID)
 	if err != nil {
 		tx.Rollback()
 		return err

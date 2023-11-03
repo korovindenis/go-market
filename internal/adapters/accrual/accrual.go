@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -26,7 +25,6 @@ type config interface {
 type Accrual struct {
 	storage
 	config
-	mu sync.Mutex
 }
 
 type accrualRespose struct {
@@ -94,10 +92,7 @@ func (a *Accrual) worker(ctx context.Context, restClient *resty.Client, accrualA
 					Status:  accrualResp.Status,
 					Accrual: accrualResp.Accrual,
 				}
-
-				a.mu.Lock()
 				_ = a.SetOrderStatusAndAccrual(ctx, newOrder)
-				a.mu.Unlock()
 			}
 
 			return

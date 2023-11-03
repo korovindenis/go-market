@@ -88,7 +88,7 @@ func (s *Storage) GetUser(ctx context.Context, userFromReq entity.User) (entity.
 // orders
 func (s *Storage) AddOrder(ctx context.Context, order entity.Order, user entity.User) error {
 	var existingOrderUser sql.NullInt64
-	err := s.db.QueryRowContext(ctx, "SELECT user_id FROM orders WHERE number = $1", order.Number).Scan(&existingOrderUser)
+	err := s.db.QueryRowContext(ctx, "SELECT user_id FROM orders WHERE number = $1 FOR UPDATE;", order.Number).Scan(&existingOrderUser)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			if _, err := s.db.ExecContext(ctx, "INSERT INTO orders (number, user_id, status) VALUES ($1, $2, $3)", order.Number, user.ID, "NEW"); err != nil {

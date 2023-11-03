@@ -79,7 +79,7 @@ func (s *Storage) UserLogin(ctx context.Context, user entity.User) error {
 }
 func (s *Storage) GetUser(ctx context.Context, userFromReq entity.User) (entity.User, error) {
 	var userFromStorage entity.User
-	if err := s.db.QueryRowContext(ctx, "SELECT id FROM users WHERE login = $1 FOR UPDATE", userFromReq.Login).Scan(&userFromStorage.ID); err != nil {
+	if err := s.db.QueryRowContext(ctx, "SELECT id FROM users WHERE login = $1", userFromReq.Login).Scan(&userFromStorage.ID); err != nil {
 		return userFromStorage, err
 	}
 	return userFromStorage, nil
@@ -88,7 +88,7 @@ func (s *Storage) GetUser(ctx context.Context, userFromReq entity.User) (entity.
 // orders
 func (s *Storage) AddOrder(ctx context.Context, order entity.Order, user entity.User) error {
 	var existingOrderUser sql.NullInt64
-	err := s.db.QueryRowContext(ctx, "SELECT user_id FROM orders WHERE number = $1 FOR UPDATE", order.Number).Scan(&existingOrderUser)
+	err := s.db.QueryRowContext(ctx, "SELECT user_id FROM orders WHERE number = $1", order.Number).Scan(&existingOrderUser)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			if _, err := s.db.ExecContext(ctx, "INSERT INTO orders (number, user_id, status) VALUES ($1, $2, $3)", order.Number, user.ID, "NEW"); err != nil {
@@ -134,7 +134,7 @@ func (s *Storage) GetAllOrders(ctx context.Context, user entity.User) ([]entity.
 }
 func (s *Storage) GetAllNotProcessedOrders(ctx context.Context) ([]entity.Order, error) {
 	var orders []entity.Order
-	rows, err := s.db.QueryContext(ctx, "SELECT number,status,accrual,uploaded_at FROM orders WHERE status NOT IN ($1,$2) FOR UPDATE", entity.StatusInvalid, entity.StatusProcessed)
+	rows, err := s.db.QueryContext(ctx, "SELECT number,status,accrual,uploaded_at FROM orders WHERE status NOT IN ($1,$2)", entity.StatusInvalid, entity.StatusProcessed)
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +194,7 @@ func (s *Storage) SetOrderStatusAndAccrual(ctx context.Context, order entity.Ord
 // balance
 func (s *Storage) GetBalance(ctx context.Context, user entity.User) (entity.Balance, error) {
 	var balance entity.Balance
-	rows, err := s.db.QueryContext(ctx, "SELECT current,withdrawn FROM balances WHERE user_id = $1 FOR UPDATE", user.ID)
+	rows, err := s.db.QueryContext(ctx, "SELECT current,withdrawn FROM balances WHERE user_id = $1", user.ID)
 	if err != nil {
 		return balance, err
 	}
@@ -248,7 +248,7 @@ func (s *Storage) WithdrawBalance(ctx context.Context, balance entity.BalanceUpd
 // Withdrawals
 func (s *Storage) Withdrawals(ctx context.Context, user entity.User) ([]entity.BalanceUpdate, error) {
 	var orders []entity.Order
-	rows, err := s.db.QueryContext(ctx, "SELECT number,sum,uploaded_at FROM orders WHERE sum > $1 AND status = $2 AND user_id = $3 ORDER BY id DESC FOR UPDATE", 0, entity.StatusProcessed, user.ID)
+	rows, err := s.db.QueryContext(ctx, "SELECT number,sum,uploaded_at FROM orders WHERE sum > $1 AND status = $2 AND user_id = $3 ORDER BY id DESC", 0, entity.StatusProcessed, user.ID)
 	if err != nil {
 		return nil, err
 	}

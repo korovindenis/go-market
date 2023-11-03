@@ -134,7 +134,7 @@ func (s *Storage) GetAllOrders(ctx context.Context, user entity.User) ([]entity.
 }
 func (s *Storage) GetAllNotProcessedOrders(ctx context.Context) ([]entity.Order, error) {
 	var orders []entity.Order
-	rows, err := s.db.QueryContext(ctx, "SELECT number,status,accrual,uploaded_at FROM orders WHERE status NOT IN ($1,$2) FOR UPDATE;", entity.StatusInvalid, entity.StatusProcessed)
+	rows, err := s.db.QueryContext(ctx, "SELECT number,status,accrual,uploaded_at FROM orders WHERE status NOT IN ($1,$2)", entity.StatusInvalid, entity.StatusProcessed)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +166,7 @@ func (s *Storage) SetOrderStatusAndAccrual(ctx context.Context, order entity.Ord
 	}
 
 	var userID int64
-	err = tx.QueryRowContext(ctx, "UPDATE orders SET status = $1, accrual = $2 WHERE number = $3 RETURNING user_id FOR UPDATE;", order.Status, order.Accrual, order.Number).Scan(&userID)
+	err = tx.QueryRowContext(ctx, "UPDATE orders SET status = $1, accrual = $2 WHERE number = $3 RETURNING user_id", order.Status, order.Accrual, order.Number).Scan(&userID)
 	if err != nil {
 		tx.Rollback()
 
@@ -177,7 +177,7 @@ func (s *Storage) SetOrderStatusAndAccrual(ctx context.Context, order entity.Ord
 		return err
 	}
 
-	_, err = tx.ExecContext(ctx, "UPDATE balances SET current = current + $1 WHERE user_id = $2 FOR UPDATE;", order.Accrual, userID)
+	_, err = tx.ExecContext(ctx, "UPDATE balances SET current = current + $1 WHERE user_id = $2", order.Accrual, userID)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -194,7 +194,7 @@ func (s *Storage) SetOrderStatusAndAccrual(ctx context.Context, order entity.Ord
 // balance
 func (s *Storage) GetBalance(ctx context.Context, user entity.User) (entity.Balance, error) {
 	var balance entity.Balance
-	rows, err := s.db.QueryContext(ctx, "SELECT current,withdrawn FROM balances WHERE user_id = $1 FOR UPDATE;", user.ID)
+	rows, err := s.db.QueryContext(ctx, "SELECT current,withdrawn FROM balances WHERE user_id = $1", user.ID)
 	if err != nil {
 		return balance, err
 	}
@@ -221,7 +221,7 @@ func (s *Storage) WithdrawBalance(ctx context.Context, balance entity.BalanceUpd
 	defer tx.Rollback()
 
 	var currentBalance float64
-	if err := tx.QueryRowContext(ctx, "SELECT current FROM balances WHERE id = $1 FOR UPDATE;", user.ID).Scan(&currentBalance); err != nil {
+	if err := tx.QueryRowContext(ctx, "SELECT current FROM balances WHERE id = $1", user.ID).Scan(&currentBalance); err != nil {
 		return err
 	}
 
@@ -229,11 +229,11 @@ func (s *Storage) WithdrawBalance(ctx context.Context, balance entity.BalanceUpd
 		return entity.ErrInsufficientBalance
 	}
 
-	if _, err := tx.ExecContext(ctx, "UPDATE balances SET current = current - $1, withdrawn = withdrawn + $1 WHERE id = $2 FOR UPDATE;", balance.Sum, user.ID); err != nil {
+	if _, err := tx.ExecContext(ctx, "UPDATE balances SET current = current - $1, withdrawn = withdrawn + $1 WHERE id = $2", balance.Sum, user.ID); err != nil {
 		return err
 	}
 
-	if _, err := tx.ExecContext(ctx, "INSERT INTO orders (number, sum, user_id, status) VALUES ($1, $2, $3, $4) FOR UPDATE;", balance.Order, balance.Sum, user.ID, "PROCESSED"); err != nil {
+	if _, err := tx.ExecContext(ctx, "INSERT INTO orders (number, sum, user_id, status) VALUES ($1, $2, $3, $4)", balance.Order, balance.Sum, user.ID, "PROCESSED"); err != nil {
 		return err
 	}
 

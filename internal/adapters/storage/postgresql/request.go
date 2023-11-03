@@ -166,7 +166,7 @@ func (s *Storage) SetOrderStatusAndAccrual(ctx context.Context, order entity.Ord
 	}
 
 	var userID int64
-	err = tx.QueryRowContext(ctx, "UPDATE orders SET status = $1, accrual = $2 WHERE number = $3 RETURNING user_id FOR UPDATE", order.Status, order.Accrual, order.Number).Scan(&userID)
+	err = tx.QueryRowContext(ctx, "UPDATE orders SET status = $1, accrual = $2 WHERE number = $3 RETURNING user_id", order.Status, order.Accrual, order.Number).Scan(&userID)
 	if err != nil {
 		tx.Rollback()
 

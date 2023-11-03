@@ -229,7 +229,7 @@ func (s *Storage) WithdrawBalance(ctx context.Context, balance entity.BalanceUpd
 		return entity.ErrInsufficientBalance
 	}
 
-	if _, err := tx.ExecContext(ctx, "UPDATE balances SET current = current - $1, withdrawn = withdrawn + $1 WHERE id = $2", balance.Sum, user.ID); err != nil {
+	if _, err := tx.ExecContext(ctx, "UPDATE balances SET current = current - $1, withdrawn = withdrawn + $1 WHERE id = $2 FOR UPDATE;", balance.Sum, user.ID); err != nil {
 		return err
 	}
 

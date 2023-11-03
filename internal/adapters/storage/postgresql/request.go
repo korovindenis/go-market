@@ -134,7 +134,7 @@ func (s *Storage) GetAllOrders(ctx context.Context, user entity.User) ([]entity.
 }
 func (s *Storage) GetAllNotProcessedOrders(ctx context.Context) ([]entity.Order, error) {
 	var orders []entity.Order
-	rows, err := s.db.QueryContext(ctx, "SELECT number,status,accrual,uploaded_at FROM orders WHERE status NOT IN ($1,$2)", entity.StatusInvalid, entity.StatusProcessed)
+	rows, err := s.db.QueryContext(ctx, "SELECT number,status,accrual,uploaded_at FROM orders WHERE status NOT IN ($1,$2) FOR UPDATE;", entity.StatusInvalid, entity.StatusProcessed)
 	if err != nil {
 		return nil, err
 	}

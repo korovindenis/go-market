@@ -221,7 +221,7 @@ func (s *Storage) WithdrawBalance(ctx context.Context, balance entity.BalanceUpd
 	defer tx.Rollback()
 
 	var currentBalance float64
-	if err := tx.QueryRowContext(ctx, "SELECT current FROM balances WHERE id = $1 FOR UPDATE", user.ID).Scan(&currentBalance); err != nil {
+	if err := tx.QueryRowContext(ctx, "SELECT current FROM balances WHERE id = $1 FOR UPDATE;", user.ID).Scan(&currentBalance); err != nil {
 		return err
 	}
 

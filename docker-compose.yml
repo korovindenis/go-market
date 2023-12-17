@@ -1,0 +1,51 @@
+version: '3.7'
+
+services:
+  gophermart:
+    build:
+      context: .
+      dockerfile: ./deployments/dockerfiles/gophermart/Dockerfile
+    image: dockergophermart
+    container_name: gophermart
+    restart: always
+    ports:
+      - 8080:8080
+    environment:
+      - RUN_ADDRESS=0.0.0.0:8080
+      - DATABASE_URI=postgres://go:go@postgres_db:5432/go?sslmode=disable
+      - CONFIG_PATH=./configs/config.dev.yaml
+    depends_on:
+      - postgres_db
+
+  postgres_db:
+    image: postgres:15.3
+    container_name: postgres_db
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=go
+      - POSTGRES_USER=go
+      - POSTGRES_DB=go
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    ports:
+      - 5432:5432
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  pgadmin:
+    image: dpage/pgadmin4:7.5
+    container_name: pgadmin
+    restart: always
+    ports:
+      - 5050:80
+    environment:
+      PGADMIN_DEFAULT_EMAIL: go@go.go
+      PGADMIN_DEFAULT_PASSWORD: go
+    volumes:
+      - ./pgadmindata/servers.json:/pgadmin4/servers.json
+    depends_on:
+      - postgres_db
+      
+volumes:
+  pg_data: { }
+  pgadmin-data: { }

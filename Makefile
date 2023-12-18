@@ -25,3 +25,8 @@ get:
 clean:
 	@echo "  >  Clearing folder"
 	@rm -f ./$(APP_BUILD_NAME)
+
+# MOCKS
+.PHONY: mocks
+mocks:
+	go generate ./...

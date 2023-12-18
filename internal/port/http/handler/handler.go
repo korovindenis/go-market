@@ -2,13 +2,13 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/korovindenis/go-market/internal/domain/entity"
 )
 
+//go:generate mockery --name usecase --exported
 type usecase interface {
 	UserRegister(ctx context.Context, user entity.User) (int64, error)
 	UserLogin(ctx context.Context, user entity.User) error
@@ -23,38 +23,34 @@ type usecase interface {
 	Withdrawals(ctx context.Context, user entity.User) ([]entity.BalanceUpdate, error)
 }
 
+//go:generate mockery --name auth --exported
 type auth interface {
 	GenerateToken(user entity.User) (string, error)
 }
 
+//go:generate mockery --name config --exported
 type config interface {
 	GetTokenName() string
 	GetTokenLifeTime() time.Duration
+}
+
+//go:generate mockery --name ctxinfo --exported
+type ctxinfo interface {
+	GetUserIDFromCtx(c *gin.Context) (int64, error)
 }
 
 type Handler struct {
 	usecase
 	auth
 	config
+	ctxinfo
 }
 
-func New(config config, usecase usecase, auth auth) (*Handler, error) {
+func New(config config, usecase usecase, auth auth, ctxinfo ctxinfo) (*Handler, error) {
 	return &Handler{
 		usecase,
 		auth,
 		config,
+		ctxinfo,
 	}, nil
-}
-
-func (h *Handler) getUserIDFromCtx(c *gin.Context) (int64, error) {
-	userIDRaw, ok := c.Get("userId")
-	if !ok {
-		return 0, fmt.Errorf("%s", "getUserIDFromCtx Get UserId")
-	}
-	userID, ok := userIDRaw.(int64)
-	if !ok {
-		return 0, fmt.Errorf("%s", "getUserIDFromCtx userIDRaw")
-	}
-
-	return userID, nil
 }

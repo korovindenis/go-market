@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,53 +15,56 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestHandler_Register(t *testing.T) {
-	type args struct {
-		c *gin.Context
-	}
+func TestHandler_Auth(t *testing.T) {
+	config := mocks.NewConfig(t)
+	usecase := mocks.NewUsecase(t)
+	auth := mocks.NewAuth(t)
+	ctxInf := mocks.NewCtxinfo(t)
+	handler, _ := New(config, usecase, auth, ctxInf)
+	router := gin.Default()
+
+	config.On("GetTokenName").Return("gomarket_auth", nil)
+	config.On("GetTokenLifeTime").Return(time.Duration(6), nil)
+
 	tests := []struct {
-		name string
-		h    *Handler
-		args args
+		name       string
+		route      string
+		args       entity.User
+		statusCode int
+		err        error
 	}{
 		{
-			name: "register",
+			name:       "register",
+			route:      "/register",
+			args:       entity.User{Login: "user10", Password: "root"},
+			statusCode: http.StatusOK,
+		},
+		{
+			name:       "login",
+			route:      "/login",
+			args:       entity.User{Login: "user10", Password: "root"},
+			statusCode: http.StatusOK,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config := mocks.NewConfig(t)
-			usecase := mocks.NewUsecase(t)
-			auth := mocks.NewAuth(t)
-			handler, _ := New(config, usecase, auth)
-			router := gin.Default()
+			// Arrange
+			args, _ := json.Marshal(tt.args)
+			usecase.On("UserRegister", mock.Anything, tt.args).Return(int64(0), nil)
+			auth.On("GenerateToken", tt.args).Return("newToken", nil)
+			router.POST(tt.route, handler.Register)
 
-			usecase.On("UserRegister", mock.Anything, entity.User{Login: "user10", Password: "root"}).Return(int64(0), nil)
-			auth.On("GenerateToken", entity.User{Login: "user10", Password: "root"}).Return("newToken", nil)
-			config.On("GetTokenName").Return("gomarket_auth", nil)
-			config.On("GetTokenLifeTime").Return(time.Duration(6), nil)
-
-			// Привязываем хандлер к маршруту
-			router.POST("/register", handler.Register)
-
-			// Создаем тестовый запрос
-			requestBody := []byte("{\"login\": \"user10\",\"password\": \"root\"}") // Пример данных формы
-			req, err := http.NewRequest("POST", "/register", bytes.NewBuffer(requestBody))
-			if err != nil {
+			// Act
+			req, err := http.NewRequest(http.MethodPost, tt.route, bytes.NewBuffer([]byte(args)))
+			if err != tt.err {
 				t.Fatal(err)
 			}
 
-			// Создаем тестовый ответ
 			w := httptest.NewRecorder()
-
-			// Выполняем запрос к маршруту
 			router.ServeHTTP(w, req)
 
-			// Проверяем результат
-			assert.Equal(t, http.StatusOK, w.Code)
-			//assert.Contains(t, w.Body.String(), "User registered: John")
-
-			//tt.h.Register(tt.args.c)
+			// Assert
+			assert.Equal(t, tt.statusCode, w.Code)
 		})
 	}
 }

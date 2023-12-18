@@ -10,10 +10,9 @@ import (
 )
 
 func (h *Handler) GetBalance(c *gin.Context) {
-	ctx := c.Request.Context()
-	userID, err := h.getUserIDFromCtx(c)
+	userID, err := h.GetUserIDFromCtx(c)
 	if err != nil {
-		c.Error(fmt.Errorf("%s %w", "Handler GetBalance getUserIDFromCtx", err))
+		c.Error(fmt.Errorf("%s %w", "Handler GetBalance GetUserIDFromCtx", err))
 		c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
 		return
 	}
@@ -21,6 +20,7 @@ func (h *Handler) GetBalance(c *gin.Context) {
 		ID: userID,
 	}
 
+	ctx := c.Request.Context()
 	balance, err := h.usecase.GetBalance(ctx, user)
 	if err != nil {
 		c.Error(fmt.Errorf("%s %w", "Handler GetBalance usecase.GetBalance", err))
@@ -33,9 +33,9 @@ func (h *Handler) GetBalance(c *gin.Context) {
 
 func (h *Handler) WithdrawBalance(c *gin.Context) {
 	ctx := c.Request.Context()
-	userID, err := h.getUserIDFromCtx(c)
+	userID, err := h.GetUserIDFromCtx(c)
 	if err != nil {
-		c.Error(fmt.Errorf("%s %w", "Handler GetBalance getUserIDFromCtx", err))
+		c.Error(fmt.Errorf("%s %w", "Handler WithdrawBalance GetUserIDFromCtx", err))
 		c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
 		return
 	}

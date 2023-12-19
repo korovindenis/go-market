@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -22,10 +23,10 @@ func TestHandler_GetBalance(t *testing.T) {
 	ctxInf := mocks.NewCtxinfo(t)
 	handler, _ := New(config, usecase, auth, ctxInf)
 	router := gin.Default()
+	router.GET("/balance", handler.GetBalance)
 
 	tests := []struct {
 		name       string
-		route      string
 		balance    entity.Balance
 		statusCode int
 		err        error
@@ -33,33 +34,42 @@ func TestHandler_GetBalance(t *testing.T) {
 	}{
 		{
 			name:       "get balance",
-			route:      "/balance",
 			balance:    entity.Balance{Current: 100, Withdrawn: 100},
 			statusCode: http.StatusOK,
+		},
+		{
+			name:       "get balance wrong param",
+			statusCode: http.StatusInternalServerError,
+			err:        errors.New("api was failed"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Arrange
 			assertData, _ := json.Marshal(tt.balance)
-			router.GET(tt.route, handler.GetBalance)
 			w := httptest.NewRecorder()
 
-			ctxInf.On("GetUserIDFromCtx", mock.Anything).Return(int64(0), tt.err)
-			usecase.On("GetBalance", mock.Anything, tt.user).Return(tt.balance, tt.err)
+			getUserIDFromCtx := ctxInf.On("GetUserIDFromCtx", mock.Anything).Return(int64(0), tt.err).Maybe()
+			getBalance := usecase.On("GetBalance", mock.Anything, mock.Anything).Return(tt.balance, tt.err).Maybe()
 
 			// Act
-			req, err := http.NewRequest(http.MethodGet, tt.route, nil)
-			if err != tt.err {
+			req, err := http.NewRequest(http.MethodGet, "/balance", nil)
+			if err != nil {
 				t.Fatal(err)
 			}
 
 			router.ServeHTTP(w, req)
 
 			// Assert
-			responseData, _ := io.ReadAll(w.Body)
-			assert.Equal(t, string(assertData), string(responseData))
+			if tt.statusCode == http.StatusOK {
+				responseData, _ := io.ReadAll(w.Body)
+				assert.Equal(t, string(assertData), string(responseData))
+			}
 			assert.Equal(t, tt.statusCode, w.Code)
+
+			// Unset
+			getUserIDFromCtx.Unset()
+			getBalance.Unset()
 		})
 	}
 }

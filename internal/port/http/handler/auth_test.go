@@ -16,8 +16,10 @@ import (
 )
 
 type callTimes struct {
-	UserRegister  int
-	GenerateToken int
+	userRegister  int
+	generateToken int
+	userLogin     int
+	getUser       int
 }
 
 func TestHandler_AuthRegister(t *testing.T) {
@@ -44,8 +46,8 @@ func TestHandler_AuthRegister(t *testing.T) {
 			args:       entity.User{Login: "user10", Password: "root"},
 			statusCode: http.StatusOK,
 			callTimes: callTimes{
-				UserRegister:  1,
-				GenerateToken: 1,
+				userRegister:  1,
+				generateToken: 1,
 			},
 		},
 		{
@@ -57,8 +59,8 @@ func TestHandler_AuthRegister(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Arrange
 			args, _ := json.Marshal(tt.args)
-			userRegister := usecase.On("UserRegister", mock.Anything, tt.args).Return(int64(0), nil).Times(tt.callTimes.UserRegister)
-			generateToken := auth.On("GenerateToken", tt.args).Return("newToken", nil).Times(tt.callTimes.GenerateToken)
+			userRegister := usecase.On("UserRegister", mock.Anything, tt.args).Return(int64(0), nil).Times(tt.callTimes.userRegister)
+			generateToken := auth.On("GenerateToken", tt.args).Return("newToken", nil).Times(tt.callTimes.generateToken)
 
 			// Act
 			req, err := http.NewRequest(http.MethodPost, "/register", bytes.NewBuffer([]byte(args)))
@@ -87,9 +89,9 @@ func TestHandler_AuthLogin(t *testing.T) {
 	handler, _ := New(config, usecase, auth, ctxInf)
 	router := gin.Default()
 
-	config.On("GetTokenName").Return("gomarket_auth", nil)
-	config.On("GetTokenLifeTime").Return(time.Duration(6), nil)
-	router.POST("/login", handler.Register)
+	config.On("GetTokenName").Return("gomarket_auth", nil).Maybe()
+	config.On("GetTokenLifeTime").Return(time.Duration(6), nil).Maybe()
+	router.POST("/login", handler.Login)
 
 	tests := []struct {
 		name       string
@@ -103,8 +105,9 @@ func TestHandler_AuthLogin(t *testing.T) {
 			args:       entity.User{Login: "user10", Password: "root"},
 			statusCode: http.StatusOK,
 			callTimes: callTimes{
-				UserRegister:  1,
-				GenerateToken: 1,
+				userLogin:     1,
+				generateToken: 1,
+				getUser:       1,
 			},
 		},
 		{
@@ -116,11 +119,12 @@ func TestHandler_AuthLogin(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Arrange
 			args, _ := json.Marshal(tt.args)
-			userRegister := usecase.On("UserRegister", mock.Anything, tt.args).Return(int64(0), nil).Times(tt.callTimes.UserRegister)
-			generateToken := auth.On("GenerateToken", tt.args).Return("newToken", nil).Times(tt.callTimes.GenerateToken)
+			getUser := usecase.On("GetUser", mock.Anything, tt.args).Return(tt.args, nil).Times(tt.callTimes.getUser)
+			generateToken := auth.On("GenerateToken", mock.Anything).Return("newToken", nil).Times(tt.callTimes.generateToken)
+			userLogin := usecase.On("UserLogin", mock.Anything, tt.args).Return(nil).Maybe().Times(tt.callTimes.userLogin)
 
 			// Act
-			req, err := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer([]byte(args)))
+			req, err := http.NewRequest(http.MethodPost, "/login", bytes.NewReader(args))
 			if err != tt.err {
 				t.Fatal(err)
 			}
@@ -132,8 +136,9 @@ func TestHandler_AuthLogin(t *testing.T) {
 			assert.Equal(t, tt.statusCode, w.Code)
 
 			// Unset
-			userRegister.Unset()
+			userLogin.Unset()
 			generateToken.Unset()
+			getUser.Unset()
 		})
 	}
 }

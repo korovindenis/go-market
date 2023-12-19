@@ -15,7 +15,7 @@ gotest:
 	go test `go list ./... | grep -v test` -count 1
 	
 gotestcover:
-	go test `go list ./... | grep -v test` -count 1 -cover
+	go test ./... -coverprofile cover.out && go tool cover -func cover.out
 
 get:
 	@echo "  >  Checking dependencies"

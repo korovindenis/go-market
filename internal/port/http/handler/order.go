@@ -16,7 +16,7 @@ func (h *Handler) SetOrder(c *gin.Context) {
 	// get input data
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		c.Error(fmt.Errorf("%s %w", "Handler SetOrder ShouldBindBodyWith", err))
+		c.Error(fmt.Errorf("%s %w", "Handler SetOrder ReadAll", err))
 		c.AbortWithError(http.StatusBadRequest, entity.ErrStatusBadRequest)
 		return
 	}

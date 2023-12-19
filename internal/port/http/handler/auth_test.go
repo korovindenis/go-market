@@ -15,7 +15,12 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestHandler_Auth(t *testing.T) {
+type callTimes struct {
+	UserRegister  int
+	GenerateToken int
+}
+
+func TestHandler_AuthRegister(t *testing.T) {
 	config := mocks.NewConfig(t)
 	usecase := mocks.NewUsecase(t)
 	auth := mocks.NewAuth(t)
@@ -25,37 +30,38 @@ func TestHandler_Auth(t *testing.T) {
 
 	config.On("GetTokenName").Return("gomarket_auth", nil)
 	config.On("GetTokenLifeTime").Return(time.Duration(6), nil)
+	router.POST("/register", handler.Register)
 
 	tests := []struct {
 		name       string
-		route      string
 		args       entity.User
 		statusCode int
 		err        error
+		callTimes  callTimes
 	}{
 		{
-			name:       "register",
-			route:      "/register",
+			name:       "register positive",
 			args:       entity.User{Login: "user10", Password: "root"},
 			statusCode: http.StatusOK,
+			callTimes: callTimes{
+				UserRegister:  1,
+				GenerateToken: 1,
+			},
 		},
 		{
-			name:       "login",
-			route:      "/login",
-			args:       entity.User{Login: "user10", Password: "root"},
-			statusCode: http.StatusOK,
+			name:       "register wrong param",
+			statusCode: http.StatusBadRequest,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Arrange
 			args, _ := json.Marshal(tt.args)
-			usecase.On("UserRegister", mock.Anything, tt.args).Return(int64(0), nil)
-			auth.On("GenerateToken", tt.args).Return("newToken", nil)
-			router.POST(tt.route, handler.Register)
+			userRegister := usecase.On("UserRegister", mock.Anything, tt.args).Return(int64(0), nil).Times(tt.callTimes.UserRegister)
+			generateToken := auth.On("GenerateToken", tt.args).Return("newToken", nil).Times(tt.callTimes.GenerateToken)
 
 			// Act
-			req, err := http.NewRequest(http.MethodPost, tt.route, bytes.NewBuffer([]byte(args)))
+			req, err := http.NewRequest(http.MethodPost, "/register", bytes.NewBuffer([]byte(args)))
 			if err != tt.err {
 				t.Fatal(err)
 			}
@@ -65,6 +71,69 @@ func TestHandler_Auth(t *testing.T) {
 
 			// Assert
 			assert.Equal(t, tt.statusCode, w.Code)
+
+			// Unset
+			userRegister.Unset()
+			generateToken.Unset()
+		})
+	}
+}
+
+func TestHandler_AuthLogin(t *testing.T) {
+	config := mocks.NewConfig(t)
+	usecase := mocks.NewUsecase(t)
+	auth := mocks.NewAuth(t)
+	ctxInf := mocks.NewCtxinfo(t)
+	handler, _ := New(config, usecase, auth, ctxInf)
+	router := gin.Default()
+
+	config.On("GetTokenName").Return("gomarket_auth", nil)
+	config.On("GetTokenLifeTime").Return(time.Duration(6), nil)
+	router.POST("/login", handler.Register)
+
+	tests := []struct {
+		name       string
+		args       entity.User
+		statusCode int
+		err        error
+		callTimes  callTimes
+	}{
+		{
+			name:       "login positive",
+			args:       entity.User{Login: "user10", Password: "root"},
+			statusCode: http.StatusOK,
+			callTimes: callTimes{
+				UserRegister:  1,
+				GenerateToken: 1,
+			},
+		},
+		{
+			name:       "login wrong param",
+			statusCode: http.StatusBadRequest,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			args, _ := json.Marshal(tt.args)
+			userRegister := usecase.On("UserRegister", mock.Anything, tt.args).Return(int64(0), nil).Times(tt.callTimes.UserRegister)
+			generateToken := auth.On("GenerateToken", tt.args).Return("newToken", nil).Times(tt.callTimes.GenerateToken)
+
+			// Act
+			req, err := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer([]byte(args)))
+			if err != tt.err {
+				t.Fatal(err)
+			}
+
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+
+			// Assert
+			assert.Equal(t, tt.statusCode, w.Code)
+
+			// Unset
+			userRegister.Unset()
+			generateToken.Unset()
 		})
 	}
 }

@@ -15,7 +15,7 @@ gotest:
 	go test `go list ./... | grep -v test` -count 1
 	
 gotestcover:
-	go test `go list ./... | grep -v test` -count 1 -cover
+	go test -covermode=count -coverprofile=coverage.out $(shell go list ./... | egrep -v '(/test|/test/mock)$$')
 
 get:
 	@echo "  >  Checking dependencies"
@@ -25,3 +25,8 @@ get:
 clean:
 	@echo "  >  Clearing folder"
 	@rm -f ./$(APP_BUILD_NAME)
+
+# MOCKS
+.PHONY: mocks
+mocks:
+	go generate ./...

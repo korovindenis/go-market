@@ -9,6 +9,7 @@ import (
 	"github.com/korovindenis/go-market/internal/domain/entity"
 )
 
+//go:generate mockery --name config --exported
 type config interface {
 	GetAppSecretKey() string
 	GetTokenLifeTime() time.Duration
@@ -43,7 +44,6 @@ func (a *Auth) GenerateToken(userFromBd entity.User) (string, error) {
 	return token.SignedString([]byte(a.GetAppSecretKey()))
 }
 
-// check token with Ip and UserAgent
 func (a *Auth) CheckToken(user entity.User, tokenString string) error {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return []byte(a.GetAppSecretKey()), nil
@@ -98,5 +98,5 @@ func (a *Auth) GetUserFromToken(tokenString string) (entity.User, error) {
 		user.ID = int64(userIDFloat)
 	}
 
-	return user, nil
+	return user, err
 }

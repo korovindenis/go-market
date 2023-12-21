@@ -16,7 +16,7 @@ func (h *Handler) SetOrder(c *gin.Context) {
 	// get input data
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		c.Error(fmt.Errorf("%s %w", "Handler SetOrder ShouldBindBodyWith", err))
+		c.Error(fmt.Errorf("%s %w", "Handler SetOrder ReadAll", err))
 		c.AbortWithError(http.StatusBadRequest, entity.ErrStatusBadRequest)
 		return
 	}
@@ -30,9 +30,9 @@ func (h *Handler) SetOrder(c *gin.Context) {
 		c.AbortWithError(http.StatusUnprocessableEntity, entity.ErrUnprocessableEntity)
 		return
 	}
-	userID, err := h.getUserIDFromCtx(c)
+	userID, err := h.GetUserIDFromCtx(c)
 	if err != nil {
-		c.Error(fmt.Errorf("%s %w", "Handler SetOrder getUserIDFromCtx", err))
+		c.Error(fmt.Errorf("%s %w", "Handler SetOrder GetUserIDFromCtx", err))
 		c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
 		return
 	}
@@ -63,9 +63,9 @@ func (h *Handler) SetOrder(c *gin.Context) {
 
 func (h *Handler) GetAllOrders(c *gin.Context) {
 	ctx := c.Request.Context()
-	userID, err := h.getUserIDFromCtx(c)
+	userID, err := h.GetUserIDFromCtx(c)
 	if err != nil {
-		c.Error(fmt.Errorf("%s %w", "Handler GetAllOrders getUserIDFromCtx", err))
+		c.Error(fmt.Errorf("%s %w", "Handler GetAllOrders GetUserIDFromCtx", err))
 		c.AbortWithError(http.StatusInternalServerError, entity.ErrInternalServerError)
 		return
 	}

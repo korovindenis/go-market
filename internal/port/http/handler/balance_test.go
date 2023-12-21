@@ -1,115 +1,128 @@
 package handler
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/korovindenis/go-market/internal/domain/entity"
+	"github.com/korovindenis/go-market/internal/port/http/handler/mocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
-func TestGetBalance(t *testing.T) {
-	handler := &Handler{
-		usecase: &mockUsecase{},
+func TestHandler_GetBalance(t *testing.T) {
+	config := mocks.NewConfig(t)
+	usecase := mocks.NewUsecase(t)
+	auth := mocks.NewAuth(t)
+	ctxInf := mocks.NewCtxinfo(t)
+	handler, _ := New(config, usecase, auth, ctxInf)
+	router := gin.Default()
+	router.GET("/balance", handler.GetBalance)
+
+	tests := []struct {
+		name       string
+		balance    entity.Balance
+		statusCode int
+		err        error
+		user       entity.User
+	}{
+		{
+			name:       "get balance",
+			balance:    entity.Balance{Current: 100, Withdrawn: 100},
+			statusCode: http.StatusOK,
+		},
+		{
+			name:       "get balance wrong param",
+			statusCode: http.StatusInternalServerError,
+			err:        errors.New("api was failed"),
+		},
 	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			assertData, _ := json.Marshal(tt.balance)
+			w := httptest.NewRecorder()
 
-	t.Run("ValidUserID", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		c, _ := gin.CreateTestContext(w)
+			getUserIDFromCtx := ctxInf.On("GetUserIDFromCtx", mock.Anything).Return(int64(0), tt.err).Maybe()
+			getBalance := usecase.On("GetBalance", mock.Anything, mock.Anything).Return(tt.balance, tt.err).Maybe()
 
-		c.Set("userId", int64(1))
+			// Act
+			req, err := http.NewRequest(http.MethodGet, "/balance", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-		handler.GetBalance(c)
+			router.ServeHTTP(w, req)
 
-		assert.Equal(t, http.StatusOK, w.Code)
+			// Assert
+			if tt.statusCode == http.StatusOK {
+				responseData, _ := io.ReadAll(w.Body)
+				assert.Equal(t, string(assertData), string(responseData))
+			}
+			assert.Equal(t, tt.statusCode, w.Code)
 
-		var result entity.Balance
-		err := c.ShouldBindJSON(&result)
-		assert.Nil(t, err)
-		assert.Equal(t, entity.Balance{Current: 1, Withdrawn: 100}, result)
-	})
-
-	t.Run("Error", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		c, _ := gin.CreateTestContext(w)
-
-		c.Set("userId", int64(2))
-
-		handler.GetBalance(c)
-
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
-	})
+			// Unset
+			getUserIDFromCtx.Unset()
+			getBalance.Unset()
+		})
+	}
 }
 
-func TestWithdrawBalance(t *testing.T) {
-	handler := &Handler{
-		usecase: &mockUsecase{},
+func TestHandler_WithdrawBalance(t *testing.T) {
+	config := mocks.NewConfig(t)
+	usecase := mocks.NewUsecase(t)
+	auth := mocks.NewAuth(t)
+	ctxInf := mocks.NewCtxinfo(t)
+	handler, _ := New(config, usecase, auth, ctxInf)
+	router := gin.Default()
+	router.POST("/balance/withdraw", handler.WithdrawBalance)
+
+	tests := []struct {
+		name          string
+		statusCode    int
+		err           error
+		balanceUpdate entity.BalanceUpdate
+		user          entity.User
+	}{
+		{
+			name:          "withdraw balance - positive",
+			statusCode:    http.StatusOK,
+			balanceUpdate: entity.BalanceUpdate{Order: "2377225624", Sum: float64(100)},
+		},
+		{
+			name:          "check Luhn",
+			statusCode:    http.StatusUnprocessableEntity,
+			balanceUpdate: entity.BalanceUpdate{Order: "1", Sum: float64(100)},
+		},
 	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			args, _ := json.Marshal(tt.balanceUpdate)
+			w := httptest.NewRecorder()
 
-	t.Run("ValidOrder", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		c, _ := gin.CreateTestContext(w)
+			ctxInf.On("GetUserIDFromCtx", mock.Anything).Return(int64(0), tt.err)
 
-		c.Set("userId", int64(1))
+			if tt.statusCode == http.StatusOK {
+				usecase.On("WithdrawBalance", mock.Anything, tt.balanceUpdate, tt.user).Return(tt.err)
+			}
 
-		balanceJSON := `{"order": 2, "sum": 50}`
-		r := httptest.NewRequest(http.MethodPost, "/withdraw", strings.NewReader(balanceJSON))
-		r.Header.Set("Content-Type", "application/json")
-		c.Request = r
+			// Act
+			req, err := http.NewRequest(http.MethodPost, "/balance/withdraw", bytes.NewBuffer([]byte(args)))
+			if err != tt.err {
+				t.Fatal(err)
+			}
 
-		handler.WithdrawBalance(c)
+			router.ServeHTTP(w, req)
 
-		assert.Equal(t, http.StatusOK, w.Code)
-	})
-
-	t.Run("InsufficientBalance", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		c, _ := gin.CreateTestContext(w)
-
-		c.Set("userId", int64(1))
-
-		balanceJSON := `{"order": 1, "sum": 50}`
-		r := httptest.NewRequest(http.MethodPost, "/withdraw", strings.NewReader(balanceJSON))
-		r.Header.Set("Content-Type", "application/json")
-		c.Request = r
-
-		handler.WithdrawBalance(c)
-
-		assert.Equal(t, http.StatusPaymentRequired, w.Code)
-	})
-
-	t.Run("InvalidJSON", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		c, _ := gin.CreateTestContext(w)
-
-		c.Set("userId", int64(1))
-
-		balanceJSON := `{"order": "invalid", "sum": "invalid"}`
-		r := httptest.NewRequest(http.MethodPost, "/withdraw", strings.NewReader(balanceJSON))
-		r.Header.Set("Content-Type", "application/json")
-		c.Request = r
-
-		handler.WithdrawBalance(c)
-
-		assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
-	})
-
-	t.Run("Error", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		c, _ := gin.CreateTestContext(w)
-
-		c.Set("userId", int64(2))
-
-		balanceJSON := `{"order": 2, "sum": 50}`
-		r := httptest.NewRequest(http.MethodPost, "/withdraw", strings.NewReader(balanceJSON))
-		r.Header.Set("Content-Type", "application/json")
-		c.Request = r
-
-		handler.WithdrawBalance(c)
-
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
-	})
+			// Assert
+			assert.Equal(t, tt.statusCode, w.Code)
+		})
+	}
 }

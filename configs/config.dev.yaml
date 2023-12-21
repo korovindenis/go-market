@@ -5,15 +5,15 @@ app:
   token_lifetime: 6
 http_server:
   mode: debug
-  address: localhost:8080
+  address: 0.0.0.0:8080
   maxHeaderBytes: 16384
   timeouts:
     idle: 5
     readHeader: 120
-    read: 10
-    write: 10
+    read: 60
+    write: 60
 storage:
   connection_string: host=127.0.0.1:5432 user=go password=go dbname=go sslmode=disable
   salt: gomarket
 accrual:
-  address: "http://localhost:8082"
+  address: "http://127.0.0.1:8082"

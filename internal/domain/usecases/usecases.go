@@ -8,6 +8,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+//go:generate mockery --name storage --exported
 type storage interface {
 	UserRegister(ctx context.Context, user entity.User) (int64, error)
 	UserLogin(ctx context.Context, user entity.User) error
@@ -22,6 +23,7 @@ type storage interface {
 	Withdrawals(ctx context.Context, user entity.User) ([]entity.BalanceUpdate, error)
 }
 
+//go:generate mockery --name config --exported
 type config interface {
 	GetStorageSalt() string
 }

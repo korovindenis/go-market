@@ -140,7 +140,7 @@ func TestAuth_GetUserFromToken(t *testing.T) {
 			args: args{
 				tokenString: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbiI6IiIsInBhc3N3b3JkIjoiIiwiSUQiOjEsIklQIjoiMTI3LjAuMC4xIiwiVXNlckFnZW50IjoiUG9zdG1hblJ1bnRpbWUvNy4yOS4yIiwiZXhwIjoxNzAzMDE2NjM2LCJuYmYiOjE3MDI5OTUwMzYsImlhdCI6MTcwMjk5NTAzNn0.9UumpeVZMCEXvbKfl1pLdCrBYRrlWs-55phxmEp1LQI",
 			},
-			user: entity.User{ID: 1},
+			user: entity.User{ID: 0},
 		},
 		{
 			name: "negative - wrong token",

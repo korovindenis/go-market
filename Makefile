@@ -15,7 +15,7 @@ gotest:
 	go test `go list ./... | grep -v test` -count 1
 	
 gotestcover:
-	go test ./... -coverprofile cover.out && go tool cover -func cover.out
+	go test -covermode=count -coverprofile=coverage.out $(shell go list ./... | egrep -v '(/test|/test/mock)$$')
 
 get:
 	@echo "  >  Checking dependencies"

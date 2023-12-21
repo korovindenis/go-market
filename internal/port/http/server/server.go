@@ -10,7 +10,8 @@ import (
 
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
-	//"github.com/gin-contrib/pprof"
+
+	"github.com/gin-contrib/pprof"
 )
 
 type handler interface {
@@ -75,7 +76,7 @@ func Run(ctx context.Context, config config, handler handler, middleware middlew
 	}
 
 	// add pprof
-	//pprof.Register(router)
+	pprof.Register(router)
 
 	// server settings
 	srv := &http.Server{

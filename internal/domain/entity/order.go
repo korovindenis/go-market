@@ -6,6 +6,7 @@ import (
 	"github.com/ShiraazMoollatjie/goluhn"
 )
 
+// order status
 const (
 	StatusNew        = "NEW"
 	StatusRegistered = "REGISTERED"
@@ -14,6 +15,7 @@ const (
 	StatusProcessing = "PROCESSING"
 )
 
+// struct for user Order
 type Order struct {
 	Number     string    `json:"number"`
 	Status     string    `json:"Status"`

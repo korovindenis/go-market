@@ -10,6 +10,7 @@ import (
 	"github.com/korovindenis/go-market/internal/domain/entity"
 )
 
+// Used during user registration
 func (h *Handler) Register(c *gin.Context) {
 	ctx := c.Request.Context()
 	var user entity.User
@@ -118,6 +119,7 @@ func (h *Handler) Login(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+// Used during user authentication
 func (h *Handler) createCookie(token string) (*http.Cookie, error) {
 	return &http.Cookie{
 		Name:     h.GetTokenName(),

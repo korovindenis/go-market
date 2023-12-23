@@ -1,3 +1,4 @@
+// init api (http server)
 package server
 
 import (
@@ -14,6 +15,7 @@ import (
 	"github.com/gin-contrib/pprof"
 )
 
+// handler for http server
 type handler interface {
 	Register(c *gin.Context)
 	Login(c *gin.Context)
@@ -27,6 +29,7 @@ type handler interface {
 	Withdrawals(c *gin.Context)
 }
 
+// middleware for http server
 type middleware interface {
 	CheckMethod() gin.HandlerFunc
 
@@ -37,6 +40,7 @@ type middleware interface {
 	AddUserInfoToCtx() gin.HandlerFunc
 }
 
+// configuration
 type config interface {
 	GetServerAddress() string
 	GetServerMode() string
@@ -46,6 +50,7 @@ type config interface {
 	GetServerMaxHeaderBytes() int
 }
 
+// run http server
 func Run(ctx context.Context, config config, handler handler, middleware middleware) error {
 	// init http
 	gin.SetMode(config.GetServerMode())

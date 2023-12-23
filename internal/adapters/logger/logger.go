@@ -1,3 +1,4 @@
+// log data
 package logger
 
 import (

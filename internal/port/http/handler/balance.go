@@ -9,6 +9,7 @@ import (
 	"github.com/korovindenis/go-market/internal/domain/entity"
 )
 
+// Displays the user's balance, returned as entity.Balance
 func (h *Handler) GetBalance(c *gin.Context) {
 	userID, err := h.GetUserIDFromCtx(c)
 	if err != nil {

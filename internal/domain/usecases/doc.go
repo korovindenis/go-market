@@ -1,0 +1,2 @@
+// Domain usecases
+package usecases

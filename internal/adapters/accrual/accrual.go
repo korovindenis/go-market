@@ -11,13 +11,17 @@ import (
 	"github.com/korovindenis/go-market/internal/domain/entity"
 )
 
+// max goroutine
 const maxWorker = 10
 
+// get/set for BD
 type storage interface {
 	GetAllNotProcessedOrders(ctx context.Context) ([]entity.Order, error)
 
 	SetOrderStatusAndAccrual(ctx context.Context, order entity.Order) error
 }
+
+// configuration
 type config interface {
 	GetAccrualAddress() string
 }
@@ -27,6 +31,7 @@ type Accrual struct {
 	config
 }
 
+// response data
 type accrualRespose struct {
 	Number  string  `json:"order"`
 	Status  string  `json:"status"`

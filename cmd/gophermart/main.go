@@ -1,3 +1,5 @@
+// Main module
+// Dependencies are initialized, and the HTTP server is started.
 package main
 
 import (
@@ -17,8 +19,12 @@ import (
 	"go.uber.org/zap"
 )
 
+// Return code for
 const (
+	// a successful exit from the application
 	ExitSucces = iota
+
+	// an unsuccessful exit from the application
 	ExitWithError
 )
 

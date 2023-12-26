@@ -9,6 +9,7 @@ import (
 	"github.com/korovindenis/go-market/internal/domain/entity"
 )
 
+// handler for get Withdrawals
 func (h *Handler) Withdrawals(c *gin.Context) {
 	ctx := c.Request.Context()
 	userID, err := h.GetUserIDFromCtx(c)

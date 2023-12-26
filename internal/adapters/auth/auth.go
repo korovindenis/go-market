@@ -19,6 +19,7 @@ type Auth struct {
 	config
 }
 
+// info in jwt token
 type claims struct {
 	entity.User
 	jwt.RegisteredClaims

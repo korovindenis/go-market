@@ -10,6 +10,7 @@ import (
 	"github.com/korovindenis/go-market/internal/domain/entity"
 )
 
+// Used to add a new order
 func (h *Handler) SetOrder(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -61,6 +62,7 @@ func (h *Handler) SetOrder(c *gin.Context) {
 	c.Status(http.StatusAccepted)
 }
 
+// Returns a list of all purchases
 func (h *Handler) GetAllOrders(c *gin.Context) {
 	ctx := c.Request.Context()
 	userID, err := h.GetUserIDFromCtx(c)

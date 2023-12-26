@@ -15,6 +15,7 @@ import (
 
 const configDefaultPath = "./configs/config.dev.yaml"
 
+// data in configDefaultPath
 type config struct {
 	App        `koanf:"app"`
 	Httpserver `koanf:"http_server"`

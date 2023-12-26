@@ -1,3 +1,4 @@
+// Work with context
 package ctxinfo
 
 import (

@@ -22,6 +22,14 @@ type callTimes struct {
 	getUser       int
 }
 
+func Example() {
+	t := &testing.T{}
+
+	// run test with testify
+	TestHandler_AuthRegister(t)
+	TestHandler_AuthLogin(t)
+}
+
 func TestHandler_AuthRegister(t *testing.T) {
 	config := mocks.NewConfig(t)
 	usecase := mocks.NewUsecase(t)
